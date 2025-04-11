@@ -1,1 +1,13 @@
-version=1.0
+#========================[ VideoSensi Update Info ]========================#
+Version: 1.0.0
+Last Updated: April 11, 2025
+Maintainer: JubairBro
+GitHub: https://github.com/jubairbro/VideoSensi
+Telegram: https://t.me/JubairFF
+
+What's New:
+- Full English-only interface
+- Improved global installation with overwrite support
+- Auto FFmpeg install & error handling
+- 5-level compression support
+- Improved logging and UI consistency
