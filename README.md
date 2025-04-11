@@ -21,7 +21,7 @@ git clone https://github.com/jubairbro/videosensi
 cd videosensi
 bash setup.sh
 ```
-
+---
 #Usage
 
 ```videosensi```
