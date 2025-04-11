@@ -1,4 +1,3 @@
-
 # videosensi
 
 **videosensi** হলো একটি প্রো লেভেল ভিডিও কম্প্রেসর টুল Termux এর জন্য। এটি ব্যবহার করে সহজেই ভিডিওর সাইজ কমিয়ে নেওয়া যায়, কোয়ালিটি ঠিক রেখে। একাধিক কম্প্রেশন অপশন, ব্র্যান্ডেড ইন্টারফেস, টেলিগ্রাম ইনভাইট, আপডেট সিস্টেম সবই রয়েছে।
@@ -23,20 +22,20 @@ cd videosensi
 bash setup.sh
 ```
 
-##Usage
+#Usage
 
 ```videosensi```
 
-##Update
+#Update
 
 ```videosensi-update```
 
-##Telegram
+#Telegram
 
 **Join for updates & support:**
 https://t.me/JubairFF
 
-##Credits ©
+#Credits ©
 
 This tool is maintained and built by the user for personal and community use.
 Made with Bash & FFmpeg in Termux.
@@ -44,4 +43,4 @@ Made with Bash & FFmpeg in Termux.
 
 ---
 
-##Enjoy blazing fast video compression right from your phone!
+#Enjoy blazing fast video compression right from your phone!
