@@ -1,131 +1,64 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/bin/bash
 
-# ╔═══════════════════════════════════════════════╗
-# ║         VideoSensi Setup Script v1.0          ║
-# ║      Auto-installer with update checker       ║
-# ╚═══════════════════════════════════════════════╝
+#=========================
+#   VideoSensi Installer
+#=========================
 
-# Set variables
-INSTALL_DIR="/data/data/com.termux/files/usr/bin"
-SCRIPT_NAME="videosensi"
-REPO_URL="https://raw.githubusercontent.com/JubairFF/VideoSensi/main/update.txt"
-LOG_DIR="/sdcard/VideoSensi/logs"
-VERSION="1.0"
+bold=$(tput bold)
+normal=$(tput sgr0)
+cyan="\e[96m"
+green="\e[92m"
+red="\e[91m"
+yellow="\e[93m"
+purple="\e[95m"
+blue="\e[94m"
+gray="\e[90m"
+reset="\e[0m"
 
-# Colors
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-CYAN='\033[1;36m'
-NC='\033[0m'
+clear
+printf "${cyan}${bold}"
+echo "┌──────────────────────────────────────────────┐"
+echo "│        Installing VideoSensi v1.0           │"
+echo "└──────────────────────────────────────────────┘"
+printf "${reset}"
+sleep 1
 
-# Box drawing functions
-draw_box_top() {
-    echo -e "${CYAN}╔═══════════════════════════════════════════════╗${NC}"
-}
+# Create folders
+mkdir -p /sdcard/VideoSensi/logs > /dev/null 2>&1
 
-draw_box_bottom() {
-    echo -e "${CYAN}╚═══════════════════════════════════════════════╝${NC}"
-}
+# Copy videosensi to /data/data/com.termux/files/usr/bin
+cp videosensi /data/data/com.termux/files/usr/bin/
+chmod +x /data/data/com.termux/files/usr/bin/videosensi
 
-draw_box_line() {
-    printf "${CYAN}║${NC} %-45s ${CYAN}║${NC}\n" "$1"
-}
-
-# Error handling
-error_exit() {
-    draw_box_top
-    draw_box_line "${RED}Error: $1${NC}"
-    draw_box_bottom
-    exit 1
-}
-
-# Check internet connection
-check_internet() {
-    ping -c 1 google.com &>/dev/null || error_exit "No internet connection!"
-}
-
-# Install FFmpeg
-install_ffmpeg() {
-    draw_box_top
-    draw_box_line "${YELLOW}Installing FFmpeg...${NC}"
-    draw_box_bottom
-    pkg install ffmpeg -y || {
-        draw_box_top
-        draw_box_line "${RED}FFmpeg installation failed. Retrying...${NC}"
-        draw_box_bottom
-        sleep 2
-        pkg update -y && pkg install ffmpeg -y || error_exit "FFmpeg installation failed!"
-    }
-}
-
-# Create directories
-setup_directories() {
-    mkdir -p "$LOG_DIR" || error_exit "Failed to create log directory!"
-    mkdir -p "/sdcard/VideoSensi" || error_exit "Failed to create output directory!"
-}
-
-# Make script executable
-make_executable() {
-    draw_box_top
-    draw_box_line "${YELLOW}Setting up VideoSensi executable...${NC}"
-    draw_box_bottom
-    cp videosensi "$INSTALL_DIR/$SCRIPT_NAME" || error_exit "Failed to copy script!"
-    chmod +x "$INSTALL_DIR/$SCRIPT_NAME" || error_exit "Failed to make script executable!"
-}
-
-# Check for updates
-check_updates() {
-    check_internet
-    draw_box_top
-    draw_box_line "${YELLOW}Checking for updates...${NC}"
-    draw_box_bottom
-    curl -s "$REPO_URL" > /tmp/update.txt || error_exit "Failed to fetch update info!"
-    LATEST_VERSION=$(grep "version=" /tmp/update.txt | cut -d'=' -f2)
-    if [[ "$LATEST_VERSION" > "$VERSION" ]]; then
-        draw_box_top
-        draw_box_line "${GREEN}Update available: v$LATEST_VERSION${NC}"
-        draw_box_line "${YELLOW}Please visit @JubairFF on Telegram for updates!${NC}"
-        draw_box_bottom
+# Update checker
+printf "${blue}Checking for updates...${reset}\n"
+git clone --depth=1 https://github.com/jubairbro/videosensi temp_update 2>/dev/null
+if [[ -f temp_update/update.txt ]]; then
+    current="v1.0"
+    latest=$(cat temp_update/update.txt | head -n 1)
+    if [[ "$current" != "$latest" ]]; then
+        printf "${yellow}New version available: $latest${reset}\n"
     else
-        draw_box_top
-        draw_box_line "${GREEN}You are running the latest version: v$VERSION${NC}"
-        draw_box_bottom
+        printf "${green}You have the latest version.${reset}\n"
     fi
-}
+fi
+rm -rf temp_update
 
-# Main setup function
-main_setup() {
-    clear
-    draw_box_top
-    draw_box_line "${BLUE}Welcome to VideoSensi Setup v$VERSION${NC}"
-    draw_box_line "${BLUE}স্বাগতম ভিডিওসেন্সি সেটআপে v$VERSION${NC}"
-    draw_box_bottom
-    sleep 2
+# FFmpeg Check
+printf "${blue}Checking FFmpeg...${reset}\n"
+if ! command -v ffmpeg &> /dev/null; then
+    printf "${yellow}FFmpeg not found. Installing...${reset}\n"
+    pkg install ffmpeg -y || {
+        echo "${red}Failed to install FFmpeg. Try again manually.${reset}"
+        exit 1
+    }
+fi
 
-    # Update package lists
-    draw_box_top
-    draw_box_line "${YELLOW}Updating Termux packages...${NC}"
-    draw_box_bottom
-    pkg update -y || error_exit "Package update failed!"
+printf "${green}Setup complete! Run with: videosensi${reset}\n"
+echo
 
-    # Install dependencies
-    install_ffmpeg
-    setup_directories
-    make_executable
-    check_updates
+# Telegram prompt
+echo -e "${purple}Join Telegram Channel: https://t.me/JubairFF${reset}"
+echo
 
-    draw_box_top
-    draw_box_line "${GREEN}Setup completed successfully!${NC}"
-    draw_box_line "${GREEN}সেটআপ সফলভাবে সম্পন্ন!${NC}"
-    draw_box_line "${CYAN}Run 'videosensi' to start!${NC}"
-    draw_box_line "${CYAN}'videosensi' চালু করুন শুরু করতে!${NC}"
-    draw_box_bottom
-}
-
-# Trap Ctrl+C
-trap 'error_exit "Setup interrupted by user!"' INT
-
-# Run main setup
-main_setup
+exit 0
