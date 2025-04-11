@@ -5,6 +5,9 @@ A Bash-based video compressor for Termux by @JubairZ.
 ## Installation
 1. Clone the repo:
    ```bash
+   pkg install git
+   rm -f /data/data/com.termux/files/usr/bin/videosensi
+   rm -rf VideoSensi
    git clone https://github.com/jubairbro/VideoSensi
    cd VideoSensi
    ```
