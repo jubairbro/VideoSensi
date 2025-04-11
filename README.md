@@ -1,79 +1,81 @@
 # VideoSensi
 
-A Bash-based video compressor for Termux by @JubairZ.
+**VideoSensi** is a flashy and powerful Termux-based video compressor tool, built with an over-the-top colorful interface, Telegram support, 5-level compression, and global access via the `videosensi` command.
 
-## Installation
-1. Clone the repo:
-   ```bash
-   pkg install git
-   git clone https://github.com/jubairbro/VideoSensi
-   git pull
-   cd VideoSensi
-   ```
-2. Run setup:
-   ```bash
-   bash setup.sh
-   ```
-3. Grant storage permission:
-   ```bash
-   termux-setup-storage
-   ```
-
-## Usage
-Run `videosensi` to start:
-- **Compress Video**: Choose file, quality (Low, Medium, High, Ultra, Custom), watermark, and format (MP4, MKV, AVI).
-- **Batch Compression**: Enter multiple files.
-- **Preview**: Make a 10-second clip.
-- **Settings**: Adjust theme (Dark, Light, Neon) or notifications.
-
-**Outputs**: `/sdcard/VideoSensi/`  
-**Logs**: `/sdcard/VideoSensi/logs/`  
-**Backups**: `/sdcard/VideoSensi/backups/`
-
-## Commands
-- `videosensi`: Start tool.
-- `videosensi --help`: Show help.
-- `videosensi --tutorial`: Run tutorial.
+---
 
 ## Features
-- Colorful UI with animated logo and themes.
-- Compression with 5 quality modes.
-- Batch processing for multiple files.
-- Auto-installs FFmpeg with backup methods.
-- Validates video files.
-- Shows metadata (codec, resolution, FPS).
-- Custom watermark (text, position, color).
-- Real-time progress bar.
-- Preview clips.
-- Backups original files.
-- Termux toast notifications.
-- Logs all actions.
-- Auto-update checker.
-- Tutorial for beginners.
-- Safe Ctrl+C exit.
 
-## Configuration
-Edit `~/.videosensi.conf`:
+- Colorful and bold terminal UI  
+- Auto installation with `setup.sh`  
+- 5 different compression levels  
+- Built-in update info and Telegram link  
+- Output saved to: `/sdcard/VideoSensi/`  
+- Clean and error-handled prompts  
+- Fully animated and expressive terminal tool  
+- Global command: `videosensi`  
+
+---
+
+## Installation
+
 ```bash
-THEME="Neon"
-NOTIFY="y"
-WATERMARK_TEXT="@JubairZ"
-WATERMARK_POS="top-left"
-WATERMARK_COLOR="white"
-```
-
-## Terms and Conditions
-- Do not modify or redistribute without permission.
-- Ensure compliance with FFmpeg's licensing terms.
-- Back up important files before compression.
-
-## Contact
-- GitHub: https://github.com/jubairbro/
-- Telegram: https://t.me/jubairFF/
-- Contact: @JubairZ
-
-## Copyright
-© 2025 @JubairZ. All rights reserved.
+git clone https://github.com/jubairbro/VideoSensi
+cd VideoSensi
+bash setup.sh
 ```
 
 ---
+
+## Usage
+
+After setup, run from anywhere with:
+
+```bash
+videosensi
+```
+
+Follow the menu to:
+- Compress any video file  
+- Choose from 5 quality levels  
+- View logs  
+- Join the Telegram channel  
+
+---
+
+## Compression Levels
+
+| Level | Description        |
+|-------|--------------------|
+| 1     | Lowest (Tiny size) |
+| 2     | Low                |
+| 3     | Medium             |
+| 4     | High               |
+| 5     | Best (Large size)  |
+
+---
+
+## Output
+
+- All compressed videos are saved to:
+```
+/sdcard/VideoSensi/
+```
+- Filenames end with `_JubairFF` for branding.
+
+---
+
+## Telegram
+
+Stay connected:  
+[Join Telegram Channel](https://t.me/JubairFF)
+
+---
+
+## License
+
+MIT License — Free for public use, but give credits when sharing.
+
+---
+
+**Crafted with passion by JubairBro**
