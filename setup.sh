@@ -1,64 +1,33 @@
-#!/bin/bash
+#!/data/data/com.termux/files/usr/bin/bash
 
-#=========================
-#   VideoSensi Installer
-#=========================
+# ┌──────────────────────────────────────────────────────────────┐
+# │                    VideoSensi Setup                         │
+# │──────────────────────────────────────────────────────────────│
+# │    Installs dependencies and configures the tool            │
+# └──────────────────────────────────────────────────────────────┘
 
-bold=$(tput bold)
-normal=$(tput sgr0)
-cyan="\e[96m"
-green="\e[92m"
-red="\e[91m"
-yellow="\e[93m"
-purple="\e[95m"
-blue="\e[94m"
-gray="\e[90m"
-reset="\e[0m"
+echo -e "\033[1;34m[⚡] Installing VideoSensi...\033[0m"
 
-clear
-printf "${cyan}${bold}"
-echo "┌──────────────────────────────────────────────┐"
-echo "│        Installing VideoSensi v1.0           │"
-echo "└──────────────────────────────────────────────┘"
-printf "${reset}"
-sleep 1
+# Install dependencies
+pkg update -y
+pkg install curl wget ffmpeg bc -y
 
-# Create folders
-mkdir -p /sdcard/VideoSensi/logs > /dev/null 2>&1
+# Create directories
+mkdir -p /sdcard/VideoSensi /sdcard/VideoSensi/logs /sdcard/VideoSensi/backups
 
-# Copy videosensi to /data/data/com.termux/files/usr/bin
-cp videosensi /data/data/com.termux/files/usr/bin/
+# Install videosensi globally
+cp videosensi /data/data/com.termux/files/usr/bin/videosensi
 chmod +x /data/data/com.termux/files/usr/bin/videosensi
 
-# Update checker
-printf "${blue}Checking for updates...${reset}\n"
-git clone --depth=1 https://github.com/jubairbro/videosensi temp_update 2>/dev/null
-if [[ -f temp_update/update.txt ]]; then
-    current="v1.0"
-    latest=$(cat temp_update/update.txt | head -n 1)
-    if [[ "$current" != "$latest" ]]; then
-        printf "${yellow}New version available: $latest${reset}\n"
-    else
-        printf "${green}You have the latest version.${reset}\n"
-    fi
-fi
-rm -rf temp_update
-
-# FFmpeg Check
-printf "${blue}Checking FFmpeg...${reset}\n"
-if ! command -v ffmpeg &> /dev/null; then
-    printf "${yellow}FFmpeg not found. Installing...${reset}\n"
-    pkg install ffmpeg -y || {
-        echo "${red}Failed to install FFmpeg. Try again manually.${reset}"
-        exit 1
-    }
+# Create default config if not exists
+if [[ ! -f "/data/data/com.termux/files/home/.videosensi.conf" ]]; then
+    cat > /data/data/com.termux/files/home/.videosensi.conf << EOF
+THEME="Neon"
+NOTIFY="y"
+WATERMARK_TEXT="@JubairZ"
+WATERMARK_POS="top-left"
+WATERMARK_COLOR="white"
+EOF
 fi
 
-printf "${green}Setup complete! Run with: videosensi${reset}\n"
-echo
-
-# Telegram prompt
-echo -e "${purple}Join Telegram Channel: https://t.me/JubairFF${reset}"
-echo
-
-exit 0
+echo -e "\033[1;32m[✓] VideoSensi installed! Run '\033[1;33mvideosensi\033[1;32m' to start.\033[0m"
