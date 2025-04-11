@@ -1,51 +1,50 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-# Colors
-red="\e[1;91m"
-green="\e[1;92m"
-cyan="\e[1;96m"
-reset="\e[0m"
+# ===============================
+#  VideoSensi Installer (setup)
+#  Powered by: t.me/JubairFF
+# ===============================
 
-# Banner
-echo -e "${cyan}"
-echo "====================================================="
-echo "            VIDEO SENSI INSTALLATION SCRIPT          "
-echo "====================================================="
-echo -e "${reset}"
+# Terminal colors
+green='\e[92m'
+red='\e[91m'
+blue='\e[94m'
+yellow='\e[93m'
+nc='\e[0m'
 
-# Check if ffmpeg is installed
-echo -e "${cyan}Checking for FFmpeg...${reset}"
-if ! command -v ffmpeg &> /dev/null; then
-    echo -e "${red}FFmpeg not found. Installing...${reset}"
-    pkg update -y && pkg install ffmpeg -y
-else
-    echo -e "${green}FFmpeg is already installed.${reset}"
-fi
+# Clear and show logo
+clear
+echo -e "${blue}"
+cat << 'EOF'
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+oooooo     oooo  o8o        .o8                      
+ `888.     .8'   `"'       "888                      
+  `888.   .8'   oooo   .oooo888   .ooooo.   .ooooo.  
+   `888. .8'    `888  d88' `888  d88' `88b d88' `88b 
+    `888.8'      888  888   888  888ooo888 888   888 
+     `888'       888  888   888  888    .o 888   888 
+      `8'       o888o `Y8bod88P" `Y8bod8P' `Y8bod8P' 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 
+      VideoSensi - Overpowered Compressor
+            t.me/JubairFF
+EOF
+echo -e "${nc}"
 
-# Make videosensi executable
-echo -e "${cyan}Setting permissions...${reset}"
+# Step 1: Set permissions
+echo -e "${green}[*] Setting executable permissions...${nc}"
 chmod +x videosensi
 
-# Remove old global videosensi if exists
-if [ -f "/data/data/com.termux/files/usr/bin/videosensi" ]; then
-    echo -e "${red}Removing existing global videosensi...${reset}"
-    rm -f /data/data/com.termux/files/usr/bin/videosensi
-fi
+# Step 2: Move to bin path
+echo -e "${green}[*] Installing as global command...${nc}"
+rm -f /data/data/com.termux/files/usr/bin/videosensi &>/dev/null
+cp videosensi /data/data/com.termux/files/usr/bin/videosensi
 
-# Copy to global bin
-echo -e "${cyan}Installing videosensi globally...${reset}"
-cp videosensi /data/data/com.termux/files/usr/bin/
-chmod 755 /data/data/com.termux/files/usr/bin/videosensi
-
-# Create output directory if not exist
+# Step 3: Create config folders
 mkdir -p /sdcard/VideoSensi
 
-# Display update info
-if [ -f "update.txt" ]; then
-    echo -e "${cyan}Checking for updates...${reset}"
-    grep "Version:" update.txt | head -1
-fi
+# Step 4: Save update info
+echo "Version: 1.0.0" > update.txt
 
-echo -e "${green}"
-echo "VideoSensi setup completed successfully!"
-echo -e "${reset}You can now run the tool by typing: ${cyan}videosensi${reset}"
+# Step 5: Finish
+echo -e "\n${yellow}[✓] VideoSensi setup completed successfully!${nc}"
+echo -e "${blue}You can now run the tool by typing: ${green}videosensi${nc}"
