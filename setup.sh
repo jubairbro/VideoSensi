@@ -1,63 +1,51 @@
-# ┌──────────────────────────────────────────────────────────────┐
-# │                    VideoSensi Setup                         │
-# │──────────────────────────────────────────────────────────────│
-# │    Installs dependencies and configures the tool            │
-# └──────────────────────────────────────────────────────────────┘
-
 #!/data/data/com.termux/files/usr/bin/bash
 
-#=======================#[ VideoSensi Setup Script ]#=======================#
-# Description : Sets up VideoSensi globally with all dependencies.
-# Author      : JubairBro
-# GitHub      : https://github.com/jubairbro/VideoSensi
-#========================================================================#
-
 # Colors
-red="\e[31m"; green="\e[32m"; yellow="\e[33m"; blue="\e[34m"; reset="\e[0m"
-bold="\e[1m"
+red="\e[1;91m"
+green="\e[1;92m"
+cyan="\e[1;96m"
+reset="\e[0m"
 
 # Banner
-clear
-echo -e "${blue}${bold}╔════════════════════════════════════════════════════╗"
-echo -e "║               WELCOME TO VIDEOSENSI              ║"
-echo -e "╚════════════════════════════════════════════════════╝${reset}"
+echo -e "${cyan}"
+echo "====================================================="
+echo "            VIDEO SENSI INSTALLATION SCRIPT          "
+echo "====================================================="
+echo -e "${reset}"
 
-# Check storage
-if [ ! -d "/sdcard" ]; then
-  echo -e "${red}Error: /sdcard not found. Please grant storage permission.${reset}"
-  termux-setup-storage
-  exit 1
-fi
-
-# Create output directory
-mkdir -p /sdcard/VideoSensi/
-
-# Remove old global version if exists
-if [ -f "/data/data/com.termux/files/usr/bin/videosensi" ]; then
-  echo -e "${yellow}Old videosensi version found. Replacing...${reset}"
-  rm -f /data/data/com.termux/files/usr/bin/videosensi
-fi
-
-# Copy videosensi script to bin
-cp videosensi /data/data/com.termux/files/usr/bin/videosensi
-chmod +x /data/data/com.termux/files/usr/bin/videosensi
-
-# FFmpeg installation
+# Check if ffmpeg is installed
+echo -e "${cyan}Checking for FFmpeg...${reset}"
 if ! command -v ffmpeg &> /dev/null; then
-  echo -e "${yellow}Installing FFmpeg...${reset}"
-  pkg update -y && pkg upgrade -y
-  pkg install ffmpeg -y
+    echo -e "${red}FFmpeg not found. Installing...${reset}"
+    pkg update -y && pkg install ffmpeg -y
+else
+    echo -e "${green}FFmpeg is already installed.${reset}"
 fi
 
-# Update checker block
-echo -e "${blue}${bold}\nChecking for updates...${reset}"
-LATEST_VERSION="$(cat update.txt | grep 'Version:' | awk '{print $2}')"
-echo -e "${green}Installed Version: ${LATEST_VERSION}${reset}"
+# Make videosensi executable
+echo -e "${cyan}Setting permissions...${reset}"
+chmod +x videosensi
 
-# Complete message
-echo -e "\n${green}VideoSensi setup completed successfully!${reset}"
-echo -e "${bold}You can now run the tool by typing: ${yellow}videosensi${reset}"
+# Remove old global videosensi if exists
+if [ -f "/data/data/com.termux/files/usr/bin/videosensi" ]; then
+    echo -e "${red}Removing existing global videosensi...${reset}"
+    rm -f /data/data/com.termux/files/usr/bin/videosensi
+fi
 
-# Refresh shell
-hash -r
-exit 0
+# Copy to global bin
+echo -e "${cyan}Installing videosensi globally...${reset}"
+cp videosensi /data/data/com.termux/files/usr/bin/
+chmod 755 /data/data/com.termux/files/usr/bin/videosensi
+
+# Create output directory if not exist
+mkdir -p /sdcard/VideoSensi
+
+# Display update info
+if [ -f "update.txt" ]; then
+    echo -e "${cyan}Checking for updates...${reset}"
+    grep "Version:" update.txt | head -1
+fi
+
+echo -e "${green}"
+echo "VideoSensi setup completed successfully!"
+echo -e "${reset}You can now run the tool by typing: ${cyan}videosensi${reset}"
