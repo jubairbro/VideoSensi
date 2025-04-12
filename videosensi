@@ -11,8 +11,8 @@ VERSION="2.4"
 AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
-LOG_DIR="$BASE_DIR/logs"
-OUTPUT_DIR="/sdcard/VideoSensi"
+LOG_DIR="$HOME/.logs"  # Hidden log directory in home
+OUTPUT_DIR="/sdcard/VideoSensi"  # Reverted to original output directory
 OP_LOG="$LOG_DIR/operation_$(date +%Y%m%d).log"
 ERROR_LOG="$LOG_DIR/ffmpeg_error.log"
 UPDATE_URL="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
@@ -338,22 +338,6 @@ compress_video() {
     esac
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
     display_processing "Processing"
-    rm -f "$ERROR_LOG" "/tmp/ffmpeg_progress" 2>/dev/null
-    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p -f null - 2>/tmp/ffmpeg_progress) &
-    local pid=$!
-    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 0)
-    local progress=0
-    while kill -0 "$pid" 2>/dev/null; do
-        if [ -f "/tmp/ffmpeg_progress" ]; then
-            local current_time=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' || echo 0)
-            progress=$((current_time * 100 / duration))
-            progress=${progress:-0}
-            printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
-        fi
-        sleep 0.5
-    done
-    wait "$pid"
-    rm -f "/tmp/ffmpeg_progress" 2>/dev/null
     if ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG"; then
         echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "compress" "success" "level:$quality output:$output"
@@ -381,22 +365,6 @@ add_watermark() {
     local output=$(get_output_file "$input" "watermarked")
     echo -e "$YELLOW Adding watermark...$RESET"
     display_processing "Processing"
-    rm -f "$ERROR_LOG" "/tmp/ffmpeg_progress" 2>/dev/null
-    (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy -f null - 2>/tmp/ffmpeg_progress) &
-    local pid=$!
-    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 0)
-    local progress=0
-    while kill -0 "$pid" 2>/dev/null; do
-        if [ -f "/tmp/ffmpeg_progress" ]; then
-            local current_time=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' || echo 0)
-            progress=$((current_time * 100 / duration))
-            progress=${progress:-0}
-            printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
-        fi
-        sleep 0.5
-    done
-    wait "$pid"
-    rm -f "/tmp/ffmpeg_progress" 2>/dev/null
     if ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG"; then
         echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "watermark" "success" "text:'$text' output:$output"
@@ -427,22 +395,6 @@ convert_video() {
     esac
     echo -e "$YELLOW Converting to $ext...$RESET"
     display_processing "Processing"
-    rm -f "$ERROR_LOG" "/tmp/ffmpeg_progress" 2>/dev/null
-    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p -f null - 2>/tmp/ffmpeg_progress) &
-    local pid=$!
-    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 0)
-    local progress=0
-    while kill -0 "$pid" 2>/dev/null; do
-        if [ -f "/tmp/ffmpeg_progress" ]; then
-            local current_time=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' || echo 0)
-            progress=$((current_time * 100 / duration))
-            progress=${progress:-0}
-            printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
-        fi
-        sleep 0.5
-    done
-    wait "$pid"
-    rm -f "/tmp/ffmpeg_progress" 2>/dev/null
     if ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG"; then
         echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "convert" "success" "format:$ext output:$output"
