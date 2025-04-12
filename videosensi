@@ -528,16 +528,16 @@ main_menu() {
         display_logo
         display_menu "Main Menu"
         echo -e "$BLUE┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-        echo -e "$GREEN┃ [1] $GREEN Compress Video                "
-        echo -e "$MAGENTA┃ [2] $MAGENTA Convert Format            "
-        echo -e "$YELLOW┃ [3] $YELLOW Add Watermark               "
-        echo -e "$CYAN┃ [4] $CYAN Change Output Directory         "
-        echo -e "$BLUE┃ [5] $BLUE View Logs                       "
-        echo -e "$GREEN┃ [6] $GREEN System Cleaner                "
-        echo -e "$MAGENTA┃ [7] $MAGENTA Check for Updates         "
-        echo -e "$YELLOW┃ [8] $YELLOW Help & Guide                "
-        echo -e "$CYAN┃ [9] $CYAN Join Telegram Community         "
-        echo -e "$BLUE┃ [0] $BLUE Exit                           "
+        echo -e "$GREEN┃ [1] $GREEN Compress Video$RESET                "
+        echo -e "$MAGENTA┃ [2] $MAGENTA Convert Format$RESET            "
+        echo -e "$YELLOW┃ [3] $YELLOW Add Watermark$RESET               "
+        echo -e "$CYAN┃ [4] $CYAN Change Output Directory$RESET         "
+        echo -e "$BLUE┃ [5] $BLUE View Logs$RESET                       "
+        echo -e "$GREEN┃ [6] $GREEN System Cleaner$RESET                "
+        echo -e "$MAGENTA┃ [7] $MAGENTA Check for Updates$RESET         "
+        echo -e "$YELLOW┃ [8] $YELLOW Help & Guide$RESET                "
+        echo -e "$CYAN┃ [9] $CYAN Join Telegram Community$RESET         "
+        echo -e "$BLUE┃ [0] $BLUE Exit$RESET                           "
         echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
         echo -e "$RESET"
         read -p "$CYAN Select [0-9]: $RESET" choice
@@ -553,8 +553,8 @@ main_menu() {
             9) join_telegram ;;
             0)
                 display_logo
-                echo -e "$GREEN Thank you for using $TOOL_NAME!"
-                echo -e "$YELLOW Developed by $AUTHOR | Join: $CYAN@JubairFF"
+                echo -e "$GREEN Thank you for using $TOOL_NAME!$RESET"
+                echo -e "$YELLOW Developed by $AUTHOR | Join: $CYAN@JubairFF$RESET"
                 exit 0
                 ;;
             *) echo -e "$RED Invalid choice!$RESET"; sleep 1 ;;
