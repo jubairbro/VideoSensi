@@ -12,11 +12,12 @@ AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
 LOG_DIR="$HOME/.logs"  # Hidden log directory in home
-OUTPUT_DIR="/sdcard/VideoSensi"  # Reverted to original output directory
+OUTPUT_DIR="/sdcard/VideoSensi"  # Output directory
 OP_LOG="$LOG_DIR/operation_$(date +%Y%m%d).log"
 ERROR_LOG="$LOG_DIR/ffmpeg_error.log"
 UPDATE_URL="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
 TELEGRAM_LINK="https://t.me/JubairFF"
+PROGRESS_FILE="$BASE_DIR/progress"  # Progress file in .videosensi
 
 # Create necessary directories
 mkdir -p "$BASE_DIR" "$LOG_DIR" "$OUTPUT_DIR" 2>/dev/null || { echo -e "\033[1;31mError: Failed to create directories! Check permissions.\033[0m"; exit 1; }
@@ -319,6 +320,20 @@ display_processing() {
     echo -en "\r$GREEN Done!               $RESET\n"
 }
 
+# Display progress bar
+display_progress_bar() {
+    local duration="$1"
+    local pid="$2"
+    local progress=0
+    while kill -0 "$pid" 2>/dev/null; do
+        sleep 0.5
+        progress=$((progress + 1))
+        if [ "$progress" -gt 100 ]; then progress=100; fi
+        printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
+    done
+    echo -en "\r$RESET"
+}
+
 # Compress video with progress bar and typing effect
 compress_video() {
     local input="$1"
@@ -338,7 +353,11 @@ compress_video() {
     esac
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
     display_processing "Processing"
-    if ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG"; then
+    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
+    local pid=$!
+    display_progress_bar 100 "$pid"  # Simple progress bar based on time
+    wait "$pid"
+    if [ $? -eq 0 ]; then
         echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "compress" "success" "level:$quality output:$output"
         return 0
@@ -365,7 +384,11 @@ add_watermark() {
     local output=$(get_output_file "$input" "watermarked")
     echo -e "$YELLOW Adding watermark...$RESET"
     display_processing "Processing"
-    if ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG"; then
+    (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
+    local pid=$!
+    display_progress_bar 100 "$pid"  # Simple progress bar based on time
+    wait "$pid"
+    if [ $? -eq 0 ]; then
         echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "watermark" "success" "text:'$text' output:$output"
         return 0
@@ -395,7 +418,11 @@ convert_video() {
     esac
     echo -e "$YELLOW Converting to $ext...$RESET"
     display_processing "Processing"
-    if ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG"; then
+    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
+    local pid=$!
+    display_progress_bar 100 "$pid"  # Simple progress bar based on time
+    wait "$pid"
+    if [ $? -eq 0 ]; then
         echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "convert" "success" "format:$ext output:$output"
         return 0
