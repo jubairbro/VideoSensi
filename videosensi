@@ -4,7 +4,7 @@
 # Developer: Jubair bro 
 # Telegram: https://t.me/JubairFF
 # GitHub: github.com/jubairbro
-# Final version: Syntax error free, robust, and Termux-optimized
+# Purpose: Video processing tool for compression, conversion, watermarking
 
 # Configuration
 VERSION="2.4"
@@ -14,7 +14,7 @@ CONFIG_DIR="$HOME/.videosensi"
 LOG_DIR="$CONFIG_DIR/logs"
 OUTPUT_DIR="/sdcard/VideoSensi"
 LOG_FILE="$LOG_DIR/operation_$(date +%Y%m%d).log"
-GITHUB_REPO="https://raw.githubusercontent.com/jubairbro/videosensi/main/videosensi.sh"
+GITHUB_REPO="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
 
 # Initialize directories
 if ! mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$OUTPUT_DIR"; then
@@ -53,11 +53,13 @@ show_logo() {
     echo "┃ $TOOL_NAME v$VERSION - by $AUTHOR       ┃"
     echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "${NC}"
-    for i in {1..3}; do
-        echo -n "."
-        sleep 0.3
+    local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    for i in {1..10}; do
+        echo -en "\r${YELLOW}Loading... ${animation[$((i % 10))]}${NC}"
+        sleep 0.2
     done
-    echo
+    echo -e "\r${GREEN}Ready!          ${NC}"
+    sleep 1
 }
 
 # Draw boxed UI
@@ -119,7 +121,7 @@ check_update() {
     show_logo
     draw_box "Script Updater"
     echo -e "${YELLOW}Checking for updates...${NC}"
-    local temp_file="/tmp/videosensi_temp.sh"
+    local temp_file="/tmp/videosensi_temp"
     if curl -s -o "$temp_file" "$GITHUB_REPO"; then
         local latest_version=$(grep -m1 "VERSION=" "$temp_file" | cut -d'"' -f2)
         if [ "$latest_version" != "$VERSION" ]; then
@@ -300,12 +302,22 @@ compress_video() {
             ;;
     esac
     echo -e "${YELLOW}Compressing video (Quality Level $quality)...${NC}"
-    if ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2> /tmp/ffmpeg_error.log; then
-        echo -e "${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
+    local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" > /tmp/ffmpeg_error.log 2>&1) &
+    local pid=$!
+    local i=0
+    while kill -0 $pid 2>/dev/null; do
+        echo -en "\r${YELLOW}Processing... ${animation[$((i % 10))]}${NC}"
+        sleep 0.2
+        ((i++))
+    done
+    wait $pid
+    if [ -f "$output" ]; then
+        echo -e "\r${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
         log_operation "Compression" "Success" "Quality:$quality Output:$output"
         return 0
     else
-        echo -e "${RED}Compression failed!${NC}"
+        echo -e "\r${RED}Compression failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
         cat /tmp/ffmpeg_error.log
         log_operation "Compression" "Failed" "Quality:$quality Input:$input Error:$(cat /tmp/ffmpeg_error.log)"
@@ -328,12 +340,22 @@ add_watermark() {
     fi
     local output=$(generate_output_name "$input" "watermarked")
     echo -e "${YELLOW}Adding watermark to video...${NC}"
-    if ffmpeg -i "$input" -vf "drawtext=text='$watermark_text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2> /tmp/ffmpeg_error.log; then
-        echo -e "${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
+    local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    (ffmpeg -i "$input" -vf "drawtext=text='$watermark_text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" > /tmp/ffmpeg_error.log 2>&1) &
+    local pid=$!
+    local i=0
+    while kill -0 $pid 2>/dev/null; do
+        echo -en "\r${YELLOW}Processing... ${animation[$((i % 10))]}${NC}"
+        sleep 0.2
+        ((i++))
+    done
+    wait $pid
+    if [ -f "$output" ]; then
+        echo -e "\r${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
         log_operation "Watermark" "Success" "Text:'$watermark_text' Output:$output"
         return 0
     else
-        echo -e "${RED}Watermarking failed!${NC}"
+        echo -e "\r${RED}Watermarking failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
         cat /tmp/ffmpeg_error.log
         log_operation "Watermark" "Failed" "Text:'$watermark_text' Input:$input Error:$(cat /tmp/ffmpeg_error.log)"
@@ -374,12 +396,22 @@ convert_video() {
             ;;
     esac
     echo -e "${YELLOW}Converting to $ext format...${NC}"
-    if ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2> /tmp/ffmpeg_error.log; then
-        echo -e "${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
+    local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" > /tmp/ffmpeg_error.log 2>&1) &
+    local pid=$!
+    local i=0
+    while kill -0 $pid 2>/dev/null; do
+        echo -en "\r${YELLOW}Processing... ${animation[$((i % 10))]}${NC}"
+        sleep 0.2
+        ((i++))
+    done
+    wait $pid
+    if [ -f "$output" ]; then
+        echo -e "\r${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
         log_operation "Conversion" "Success" "Format:$ext Output:$output"
         return 0
     else
-        echo -e "${RED}Conversion failed!${NC}"
+        echo -e "\r${RED}Conversion failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
         cat /tmp/ffmpeg_error.log
         log_operation "Conversion" "Failed" "Format:$ext Input:$input Error:$(cat /tmp/ffmpeg_error.log)"
