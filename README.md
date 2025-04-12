@@ -20,9 +20,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/jubairbro/VideoSensi
-cd VideoSensi
-bash setup.sh
+bash <(curl -s https://raw.githubusercontent.com/jubairbro/VideoSensi/main/setup.sh)
 ```
 
 ---
