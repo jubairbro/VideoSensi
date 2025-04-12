@@ -1,21 +1,19 @@
 #!/bin/bash
 
-# VideoSensi Ultimate - Complete Version
-# Version: 3.5
-# Author: Jubair (@JubairFF)
+# VideoSensi Pro - Version 2.0
+# Developer: Jubair bro 
 # Telegram: https://t.me/JubairFF
-# GitHub: https://github.com/jubairbro/VideoSensi
+# GitHub: github.com/jubairbro
 
 # Configuration
-VERSION="3.5"
+VERSION="2.0"
+AUTHOR="Jubair bro"
+TOOL_NAME="VideoSensi Pro"
 CONFIG_DIR="$HOME/.videosensi"
 LOG_DIR="$CONFIG_DIR/logs"
 OUTPUT_DIR="/sdcard/VideoSensi"
 BACKUP_DIR="$CONFIG_DIR/backups"
 WATERMARK_IMAGE="$CONFIG_DIR/watermark.png"
-UPDATE_FILE="$CONFIG_DIR/update.txt"
-TELEGRAM_CHANNEL="https://t.me/JubairFF"
-GITHUB_REPO="https://github.com/jubairbro/VideoSensi"
 
 # Initialize directories
 mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$OUTPUT_DIR" "$BACKUP_DIR"
@@ -30,394 +28,337 @@ CYAN='\033[1;36m'
 WHITE='\033[1;37m'
 NC='\033[0m'
 
-# Random Color Function
-random_color() {
-    colors=($RED $GREEN $YELLOW $BLUE $PURPLE $CYAN $WHITE)
-    echo "${colors[$RANDOM % 7]}"
-}
-
-# Clean Terminal with Random Color
-clean_terminal() {
+# Show ASCII logo with version
+show_logo() {
     clear
-    color=$(random_color)
-    echo -e "${color}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "oooooo     oooo  o8o        .o8                      "
-    echo " \`888.     .8'   \`\"'       \"888                      "
-    echo "  \`888.   .8'   oooo   .oooo888   .ooooo.   .ooooo.  "
-    echo "   \`888. .8'    \`888  d88' \`888  d88' \`88b d88' \`88b "
-    echo "    \`888.8'      888  888   888  888ooo888 888   888 "
-    echo "     \`888'       888  888   888  888    .o 888   888 "
-    echo "      \`8'       o888o \`Y8bod88P\" \`Y8bod8P' \`Y8bod8P'"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+    echo "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗┃"
+    echo "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗┃"
+    echo "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║┃"
+    echo "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║┃"
+    echo "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝┃"
+    echo "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚════��╝ ┃"
+    echo "┠──────────────────────────────────────┨"
+    echo "┃ $TOOL_NAME v$VERSION - by $AUTHOR       ┃"
+    echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "${NC}"
 }
 
-# Draw Box with Random Color
-draw_box() {
-    local text="$1"
-    color=$(random_color)
-    local width=60
-    local padding=4
+# Function to create backup
+create_backup() {
+    local input_file="$1"
+    local backup_file="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_$(basename "$input_file")"
     
-    local text_length=${#text}
-    local box_width=$(( text_length + padding * 2 ))
-    [ $box_width -lt $width ] && box_width=$width
-    
-    # Top Border
-    echo -ne "${color}┌"
-    for ((i=0; i<box_width; i++)); do echo -ne "─"; done
-    echo -ne "┐\n"
-    
-    # Text Line
-    echo -ne "│"
-    for ((i=0; i<(box_width-text_length)/2; i++)); do echo -ne " "; done
-    echo -ne "$text"
-    for ((i=0; i<(box_width-text_length+1)/2; i++)); do echo -ne " "; done
-    echo -ne "│\n"
-    
-    # Bottom Border
-    echo -ne "└"
-    for ((i=0; i<box_width; i++)); do echo -ne "─"; done
-    echo -ne "┘${NC}\n"
-}
-
-# Animated Progress Bar
-progress_bar() {
-    local duration=${1:-3}
-    local bar_length=30
-    local sleep_interval=$(echo "scale=5; $duration/$bar_length" | bc)
-    color=$(random_color)
-    
-    echo -ne "${color}["
-    for ((i=0; i<bar_length; i++)); do
-        echo -ne "="
-        sleep $sleep_interval
-    done
-    echo -ne "]${NC}\r"
-    echo -ne "\n"
-}
-
-# Check FFmpeg
-check_ffmpeg() {
-    if ! command -v ffmpeg &> /dev/null; then
-        draw_box "FFmpeg not found! Installing..."
-        pkg install -y ffmpeg &> /dev/null
-        if ! command -v ffmpeg &> /dev/null; then
-            draw_box "Failed to install FFmpeg!" "red"
-            exit 1
-        fi
-    fi
-}
-
-# Backup System
-backup_file() {
-    local file="$1"
-    local timestamp=$(date +%Y%m%d_%H%M%S)
-    local backup="$BACKUP_DIR/$(basename "$file")_$timestamp.bak"
-    
-    if cp "$file" "$backup"; then
-        echo -e "${YELLOW}Backup saved: $backup${NC}"
+    if cp "$input_file" "$backup_file"; then
+        echo -e "${GREEN}Backup created: ${CYAN}$backup_file${NC}"
         return 0
     else
-        echo -e "${RED}Backup failed!${NC}"
+        echo -e "${RED}Failed to create backup!${NC}"
         return 1
     fi
 }
 
-# Text Watermark
-add_text_watermark() {
+# Generate unique output filename
+generate_output_name() {
     local input="$1"
-    local output="$2"
-    local text="${3:-JubairFF}"
-    
-    ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" &> /dev/null
-}
+    local prefix="$2"
+    local extension="${input##*.}"
+    local base="$(basename "$input" ".$extension")"
+    local output="$OUTPUT_DIR/${base}_${prefix}_Jubairbro.${extension}"
+    local counter=1
 
-# Image Watermark
-add_image_watermark() {
-    local input="$1"
-    local output="$2"
-    
-    if [ ! -f "$WATERMARK_IMAGE" ]; then
-        echo -e "${RED}Watermark image not found!${NC}"
-        return 1
-    fi
-    
-    ffmpeg -i "$input" -i "$WATERMARK_IMAGE" -filter_complex "overlay=10:10" -codec:a copy "$output" &> /dev/null
-}
-
-# Compress Video
-compress_video() {
-    clean_terminal
-    draw_box "VIDEO COMPRESSION"
-    
-    read -p $'\033[1;36mEnter video path (or drag & drop): \033[0m' input_file
-    input_file=$(echo "$input_file" | tr -d "'")
-    
-    if [ ! -f "$input_file" ]; then
-        echo -e "${RED}Error: File not found!${NC}"
-        sleep 2
-        return
-    fi
-    
-    # Create backup
-    backup_file "$input_file"
-    
-    filename=$(basename -- "$input_file")
-    output_file="$OUTPUT_DIR/${filename%.*}_compressed.mp4"
-    
-    # Quality selection
-    echo -e "\n${YELLOW}Select Quality Level:${NC}"
-    echo "  [1] Ultra Low (Smallest size)"
-    echo "  [2] Low (Small size)"
-    echo "  [3] Medium (Balanced)"
-    echo "  [4] High (Better quality)"
-    echo "  [5] Ultra High (Best quality)"
-    
-    read -p $'\033[1;36mSELECT QUALITY [1-5]: \033[0m' quality
-    
-    case $quality in
-        1) crf=32; preset="ultrafast" ;;
-        2) crf=28; preset="superfast" ;;
-        3) crf=24; preset="medium" ;;
-        4) crf=20; preset="slow" ;;
-        5) crf=16; preset="veryslow" ;;
-        *) crf=24; preset="medium" ;;
-    esac
-    
-    # Compression
-    draw_box "COMPRESSING VIDEO..."
-    echo -e "${YELLOW}Please wait...${NC}"
-    
-    if ffmpeg -i "$input_file" -c:v libx264 -crf $crf -preset $preset -pix_fmt yuv420p "$output_file" &> /dev/null; then
-        original_size=$(du -h "$input_file" | cut -f1)
-        new_size=$(du -h "$output_file" | cut -f1)
-        
-        draw_box "COMPRESSION COMPLETE!"
-        echo -e "${GREEN}Original: $original_size → Compressed: $new_size${NC}"
-        echo -e "${GREEN}Output saved to: $output_file${NC}"
-    else
-        draw_box "COMPRESSION FAILED!" "red"
-        echo -e "${RED}Error occurred during compression!${NC}"
-    fi
-    
-    read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
-}
-
-# Convert Format
-convert_format() {
-    clean_terminal
-    draw_box "CONVERT VIDEO FORMAT"
-    
-    read -p $'\033[1;36mEnter video path (or drag & drop): \033[0m' input_file
-    input_file=$(echo "$input_file" | tr -d "'")
-    
-    if [ ! -f "$input_file" ]; then
-        echo -e "${RED}Error: File not found!${NC}"
-        sleep 2
-        return
-    fi
-    
-    # Format selection
-    echo -e "\n${YELLOW}Select Output Format:${NC}"
-    echo "  [1] MP4 (H.264)"
-    echo "  [2] MKV (H.265)"
-    echo "  [3] MOV (Apple)"
-    echo "  [4] WEBM (VP9)"
-    echo "  [5] AVI (Legacy)"
-    
-    read -p $'\033[1;36mSELECT FORMAT [1-5]: \033[0m' format
-    
-    filename=$(basename -- "$input_file")
-    
-    case $format in
-        1) output="$OUTPUT_DIR/${filename%.*}.mp4"; codec="libx264" ;;
-        2) output="$OUTPUT_DIR/${filename%.*}.mkv"; codec="libx265" ;;
-        3) output="$OUTPUT_DIR/${filename%.*}.mov"; codec="libx264" ;;
-        4) output="$OUTPUT_DIR/${filename%.*}.webm"; codec="libvpx-vp9" ;;
-        5) output="$OUTPUT_DIR/${filename%.*}.avi"; codec="mpeg4" ;;
-        *) output="$OUTPUT_DIR/${filename%.*}.mp4"; codec="libx264" ;;
-    esac
-    
-    # Conversion
-    draw_box "CONVERTING VIDEO..."
-    echo -e "${YELLOW}Please wait...${NC}"
-    
-    if ffmpeg -i "$input_file" -c:v $codec -pix_fmt yuv420p "$output" &> /dev/null; then
-        draw_box "CONVERSION COMPLETE!"
-        echo -e "${GREEN}Output saved to: $output${NC}"
-    else
-        draw_box "CONVERSION FAILED!" "red"
-        echo -e "${RED}Error occurred during conversion!${NC}"
-    fi
-    
-    read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
-}
-
-# Watermark Menu
-watermark_menu() {
-    while true; do
-        clean_terminal
-        draw_box "ADD WATERMARK"
-        
-        read -p $'\033[1;36mEnter video path (or drag & drop): \033[0m' input_file
-        input_file=$(echo "$input_file" | tr -d "'")
-        
-        if [ ! -f "$input_file" ]; then
-            echo -e "${RED}Error: File not found!${NC}"
-            sleep 2
-            continue
-        fi
-        
-        filename=$(basename -- "$input_file")
-        output="$OUTPUT_DIR/${filename%.*}_watermarked.mp4"
-        
-        echo -e "\n${YELLOW}Select Watermark Type:${NC}"
-        echo "  [1] Image Watermark"
-        echo "  [2] Text Watermark"
-        echo "  [0] Back to Main Menu"
-        
-        read -p $'\033[1;36mSELECT OPTION [0-2]: \033[0m' choice
-        
-        case $choice in
-            1)
-                if add_image_watermark "$input_file" "$output"; then
-                    draw_box "WATERMARK ADDED!"
-                    echo -e "${GREEN}Output saved to: $output${NC}"
-                else
-                    draw_box "FAILED TO ADD WATERMARK!" "red"
-                fi
-                ;;
-            2)
-                read -p $'\033[1;36mEnter watermark text: \033[0m' text
-                if add_text_watermark "$input_file" "$output" "$text"; then
-                    draw_box "WATERMARK ADDED!"
-                    echo -e "${GREEN}Output saved to: $output${NC}"
-                else
-                    draw_box "FAILED TO ADD WATERMARK!" "red"
-                fi
-                ;;
-            0)
-                return
-                ;;
-            *)
-                echo -e "${RED}Invalid option!${NC}"
-                ;;
-        esac
-        
-        read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
+    while [ -f "$output" ]; do
+        output="$OUTPUT_DIR/${base}_${prefix}_Jubairbro($counter).${extension}"
+        ((counter++))
     done
+
+    echo "$output"
 }
 
-# View Logs
-view_logs() {
-    clean_terminal
-    draw_box "SYSTEM LOGS"
+# Compression function with backup
+compress_video() {
+    local input="$1"
+    local quality="$2"
     
-    echo -e "${YELLOW}Backups Directory:${NC}"
-    ls -lh "$BACKUP_DIR"
-    
-    echo -e "\n${YELLOW}Compression Logs:${NC}"
-    if [ -f "$LOG_DIR/compression.log" ]; then
-        cat "$LOG_DIR/compression.log"
-    else
-        echo "No logs found"
+    # Create backup first
+    if ! create_backup "$input"; then
+        return 1
     fi
-    
-    read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
-}
 
-# System Cleanup
-system_cleanup() {
-    clean_terminal
-    draw_box "SYSTEM CLEANUP"
-    
-    echo -e "${YELLOW}Cleaning temporary files...${NC}"
-    rm -f /tmp/videosensi*
-    
-    echo -e "${YELLOW}Cleaning old backups...${NC}"
-    find "$BACKUP_DIR" -type f -mtime +7 -delete
-    
-    draw_box "CLEANUP COMPLETE!"
-    read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
-}
+    local output=$(generate_output_name "$input" "compressed")
+    local crf
+    local preset
 
-# Check Updates
-check_updates() {
-    clean_terminal
-    draw_box "CHECK FOR UPDATES"
-    
-    echo -e "${YELLOW}Checking GitHub for updates...${NC}"
-    
-    if remote_version=$(curl -s "$GITHUB_REPO/raw/main/update.txt"); then
-        if [ "$remote_version" != "$VERSION" ]; then
-            draw_box "UPDATE AVAILABLE: v$remote_version"
-            echo -e "${GREEN}Current version: v$VERSION${NC}"
-            echo -e "${GREEN}New version: v$remote_version${NC}"
-            
-            read -p $'\033[1;36mUpdate now? [Y/n]: \033[0m' choice
-            if [[ "$choice" =~ ^[Yy]?$ ]]; then
-                echo -e "${YELLOW}Downloading update...${NC}"
-                if bash <(curl -s "$GITHUB_REPO/raw/main/setup.sh"); then
-                    exit 0
-                else
-                    echo -e "${RED}Update failed!${NC}"
-                fi
-            fi
-        else
-            draw_box "YOU HAVE THE LATEST VERSION"
-            echo -e "${GREEN}No updates available${NC}"
-        fi
+    case $quality in
+        1) crf=32; preset="ultrafast";;
+        2) crf=28; preset="superfast";;
+        3) crf=24; preset="medium";;
+        4) crf=20; preset="slow";;
+        5) crf=16; preset="veryslow";;
+    esac
+
+    echo -e "${YELLOW}Compressing video (Quality Level $quality)...${NC}"
+    if ffmpeg -i "$input" -c:v libx264 -crf $crf -preset $preset -pix_fmt yuv420p "$output" &> /dev/null; then
+        echo -e "${GREEN}Success! Output saved to:${NC}"
+        echo -e "${CYAN}$output${NC}"
+        return 0
     else
-        draw_box "UPDATE CHECK FAILED" "red"
-        echo -e "${RED}Could not connect to GitHub${NC}"
+        echo -e "${RED}Compression failed!${NC}"
+        return 1
     fi
-    
-    read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
 }
 
-# Exit Script
-exit_script() {
-    clean_terminal
-    draw_box "THANK YOU FOR USING VIDEO SENSI"
-    echo -e "${YELLOW}Telegram: @JubairFF${NC}"
-    echo -e "${YELLOW}GitHub: github.com/jubairbro/VideoSensi${NC}"
-    exit 0
+# Watermark function
+add_watermark() {
+    local input="$1"
+    local watermark_text="$2"
+    local output=$(generate_output_name "$input" "watermarked")
+
+    echo -e "${YELLOW}Adding watermark to video...${NC}"
+    if ffmpeg -i "$input" -vf "drawtext=text='$watermark_text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" &> /dev/null; then
+        echo -e "${GREEN}Success! Watermarked video saved to:${NC}"
+        echo -e "${CYAN}$output${NC}"
+        return 0
+    else
+        echo -e "${RED}Watermarking failed!${NC}"
+        return 1
+    fi
 }
 
-# Main Menu
-main_menu() {
-    check_ffmpeg
-    
+# Conversion function
+convert_video() {
+    local input="$1"
+    local format="$2"
+    local output=$(generate_output_name "$input" "converted")
+
+    case $format in
+        1) codec="libx264"; ext="mp4";;
+        2) codec="libx265"; ext="mkv";;
+        3) codec="libx264"; ext="mov";;
+        4) codec="libvpx-vp9"; ext="webm";;
+        5) codec="mpeg4"; ext="avi";;
+    esac
+
+    echo -e "${YELLOW}Converting to $ext format...${NC}"
+    if ffmpeg -i "$input" -c:v $codec -pix_fmt yuv420p "$output" &> /dev/null; then
+        echo -e "${GREEN}Success! Converted video saved to:${NC}"
+        echo -e "${CYAN}$output${NC}"
+        return 0
+    else
+        echo -e "${RED}Conversion failed!${NC}"
+        return 1
+    fi
+}
+
+# -------------------------------
+# MENU SYSTEM (COLORFUL & USER-FRIENDLY)
+# -------------------------------
+
+# Compression menu
+compression_menu() {
     while true; do
-        clean_terminal
-        draw_box "VIDEO SENSI v$VERSION"
-        
-        echo -e "${YELLOW}"
-        echo "  [1] Compress Video"
-        echo "  [2] Convert Format"
-        echo "  [3] Add Watermark"
-        echo "  [4] View Logs"
-        echo "  [5] Check Updates"
-        echo "  [6] System Cleanup"
-        echo "  [0] Exit"
+        show_logo
+        echo -e "${BLUE}"
+        echo "┌──────────────────────────────────────┐"
+        echo "│        VIDEO COMPRESSION MENU        │"
+        echo "└──────────────────────────────────────┘"
         echo -e "${NC}"
-        
-        read -p $'\033[1;36mSELECT OPTION [0-6]: \033[0m' choice
-        
+        echo -e "${YELLOW}Select Quality Level:${NC}"
+        echo "  [1] Ultra Low (Smallest size)"
+        echo "  [2] Low (Small size)"
+        echo "  [3] Medium (Balanced)"
+        echo "  [4] High (Better quality)"
+        echo "  [5] Ultra High (Best quality)"
+        echo "  [0] Back to Main Menu"
+        echo -e "${NC}"
+
+        read -p $'\033[1;36mSELECT OPTION [0-5]: \033[0m' choice
+
         case $choice in
-            1) compress_video ;;
-            2) convert_format ;;
-            3) watermark_menu ;;
-            4) view_logs ;;
-            5) check_updates ;;
-            6) system_cleanup ;;
-            0) exit_script ;;
+            1|2|3|4|5)
+                read -p $'\033[1;36mEnter video path (go file manager & copy): \033[0m' video_path
+                video_path=$(echo "$video_path" | tr -d "'")
+                if [ ! -f "$video_path" ]; then
+                    echo -e "${RED}File not found!${NC}"
+                    sleep 2
+                    continue
+                fi
+                
+                compress_video "$video_path" "$choice"
+                read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
+                ;;
+            0) break ;;
             *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
         esac
     done
 }
 
-# Start the application
+# Watermark menu
+watermark_menu() {
+    while true; do
+        show_logo
+        echo -e "${CYAN}"
+        echo "┌──────────────────────────────────────┐"
+        echo "│         WATERMARK MENU               │"
+        echo "└──────────────────────────────────────┘"
+        echo -e "${NC}"
+        echo -e "${YELLOW}Select Watermark Type:${NC}"
+        echo "  [1] Text Watermark"
+        echo "  [0] Back to Main Menu"
+        echo -e "${NC}"
+
+        read -p $'\033[1;36mSELECT OPTION [0-1]: \033[0m' choice
+
+        case $choice in
+            1)
+                read -p $'\033[1;36mEnter video path (go file manager & copy): \033[0m' video_path
+                video_path=$(echo "$video_path" | tr -d "'")
+                if [ ! -f "$video_path" ]; then
+                    echo -e "${RED}File not found!${NC}"
+                    sleep 2
+                    continue
+                fi
+                
+                read -p $'\033[1;36mEnter watermark text: \033[0m' watermark_text
+                
+                add_watermark "$video_path" "$watermark_text"
+                read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
+                ;;
+            0) break ;;
+            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Conversion menu
+convert_menu() {
+    while true; do
+        show_logo
+        echo -e "${GREEN}"
+        echo "┌──────────────────────────────────────┐"
+        echo "│         CONVERSION MENU              │"
+        echo "└──────────────────────────────────────┘"
+        echo -e "${NC}"
+        echo -e "${YELLOW}Select Output Format:${NC}"
+        echo "  [1] MP4 (H.264)"
+        echo "  [2] MKV (H.265)"
+        echo "  [3] MOV (Apple)"
+        echo "  [4] WEBM (VP9)"
+        echo "  [5] AVI (Legacy)"
+        echo "  [0] Back to Main Menu"
+        echo -e "${NC}"
+
+        read -p $'\033[1;36mSELECT OPTION [0-5]: \033[0m' choice
+
+        case $choice in
+            1|2|3|4|5)
+                read -p $'\033[1;36mEnter video path (go file manager & copy): \033[0m' video_path
+                video_path=$(echo "$video_path" | tr -d "'")
+                if [ ! -f "$video_path" ]; then
+                    echo -e "${RED}File not found!${NC}"
+                    sleep 2
+                    continue
+                fi
+                
+                convert_video "$video_path" "$choice"
+                read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
+                ;;
+            0) break ;;
+            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Backup menu
+backup_menu() {
+    while true; do
+        show_logo
+        echo -e "${PURPLE}"
+        echo "┌──────────────────────────────────────┐"
+        echo "│          BACKUP MENU                 │"
+        echo "└──────────────────────────────────────┘"
+        echo -e "${NC}"
+        echo -e "${YELLOW}Available Backups:${NC}"
+        ls -lh "$BACKUP_DIR" | awk '{print $9, $5}'
+        echo -e "\n${YELLOW}Options:${NC}"
+        echo "  [1] Restore Backup"
+        echo "  [2] Clean Old Backups"
+        echo "  [0] Back to Main Menu"
+        echo -e "${NC}"
+
+        read -p $'\033[1;36mSELECT OPTION [0-2]: \033[0m' choice
+
+        case $choice in
+            1)
+                read -p $'\033[1;36mEnter backup filename: \033[0m' backup_file
+                if [ -f "$BACKUP_DIR/$backup_file" ]; then
+                    cp "$BACKUP_DIR/$backup_file" "$OUTPUT_DIR/restored_$backup_file"
+                    echo -e "${GREEN}Backup restored to:${NC}"
+                    echo -e "${CYAN}$OUTPUT_DIR/restored_$backup_file${NC}"
+                else
+                    echo -e "${RED}Backup file not found!${NC}"
+                fi
+                read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
+                ;;
+            2)
+                echo -e "${YELLOW}Cleaning backups older than 7 days...${NC}"
+                find "$BACKUP_DIR" -type f -mtime +7 -delete
+                echo -e "${GREEN}Cleanup complete!${NC}"
+                read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
+                ;;
+            0) break ;;
+            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Main menu
+main_menu() {
+    while true; do
+        show_logo
+        echo -e "${RED}"
+        echo "┌──────────────────────────────────────┐"
+        echo "│           MAIN MENU                  │"
+        echo "└──────────────────────────────────────┘"
+        echo -e "${NC}"
+        echo -e "${YELLOW}Select Option:${NC}"
+        echo "  [1] Compress Video"
+        echo "  [2] Convert Format"
+        echo "  [3] Add Watermark"
+        echo "  [4] Backup Management"
+        echo "  [0] Exit"
+        echo -e "${NC}"
+
+        read -p $'\033[1;36mSELECT OPTION [0-4]: \033[0m' choice
+
+        case $choice in
+            1) compression_menu ;;
+            2) convert_menu ;;
+            3) watermark_menu ;;
+            4) backup_menu ;;
+            0)
+                show_logo
+                echo -e "${GREEN}Thanks for using $TOOL_NAME!${NC}"
+                echo -e "${YELLOW}Contact: @JubairFF${NC}"
+                exit 0
+                ;;
+            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Check dependencies
+check_dependencies() {
+    if ! command -v ffmpeg &> /dev/null; then
+        echo -e "${RED}FFmpeg not found! Installing...${NC}"
+        pkg install -y ffmpeg
+        if ! command -v ffmpeg &> /dev/null; then
+            echo -e "${RED}Failed to install FFmpeg!${NC}"
+            exit 1
+        fi
+    fi
+}
+
+# Start application
+check_dependencies
 main_menu
