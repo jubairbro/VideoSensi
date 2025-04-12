@@ -329,7 +329,7 @@ display_progress_bar() {
         sleep 0.5
         progress=$((progress + 1))
         if [ "$progress" -gt "$max_progress" ]; then progress="$max_progress"; fi
-        printf "\r%-70s\033[0K$YELLOW Progress: [%-50s] %d%%$RESET" "" "$(printf '=%.0s' $(seq 1 $((progress*50/max_progress))))" "$progress"
+        printf "\r%-70s\033[0K$YELLOW Progress: [%-50s]$RESET" "" "$(printf '=%.0s' $(seq 1 $((progress*50/max_progress))))"
     done
     printf "\r%-70s\033[0K$RESET\n" ""  # Clear line and move to new line
 }
@@ -356,6 +356,7 @@ compress_video() {
     (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
     local pid=$!
     local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
+    duration=$(printf "%.0f" "$duration")  # Convert float to integer
     display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
     wait "$pid"
     if [ $? -eq 0 ]; then
@@ -388,6 +389,7 @@ add_watermark() {
     (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
     local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
+    duration=$(printf "%.0f" "$duration")  # Convert float to integer
     display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
     wait "$pid"
     if [ $? -eq 0 ]; then
@@ -423,6 +425,7 @@ convert_video() {
     (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
     local pid=$!
     local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
+    duration=$(printf "%.0f" "$duration")  # Convert float to integer
     display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
     wait "$pid"
     if [ $? -eq 0 ]; then
