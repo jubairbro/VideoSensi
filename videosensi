@@ -13,13 +13,12 @@ TOOL_NAME="VideoSensi Pro"
 CONFIG_DIR="$HOME/.videosensi"
 LOG_DIR="$CONFIG_DIR/logs"
 OUTPUT_DIR="/sdcard/VideoSensi"
-BACKUP_DIR="$CONFIG_DIR/backups"
 WATERMARK_IMAGE="$CONFIG_DIR/watermark.png"
 GITHUB_REPO="https://raw.githubusercontent.com/jubairbro/videosensi/main/videosensi.sh"
 LOG_FILE="$LOG_DIR/operation_$(date +%Y%m%d).log"
 
 # Initialize directories
-mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$OUTPUT_DIR" "$BACKUP_DIR"
+mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$OUTPUT_DIR"
 
 # Colors array for random selection
 COLORS=('\033[1;31m' '\033[1;32m' '\033[1;33m' '\033[1;34m' '\033[1;35m' '\033[1;36m')
@@ -151,11 +150,10 @@ clean_system() {
     
     echo -e "${YELLOW}Cleaning Options:${NC}"
     echo "  [1] Clean Old Logs (>7 days)"
-    echo "  [2] Clean Old Backups (>7 days)"
-    echo "  [3] Clean Output Directory"
+    echo "  [2] Clean Output Directory"
     echo "  [0] Back to Main Menu"
     
-    read -p $'\033[1;36mSELECT OPTION [0-3]: \033[0m' choice
+    read -p $'\033[1;36mSELECT OPTION [0-2]: \033[0m' choice
     
     case $choice in
         1)
@@ -164,11 +162,6 @@ clean_system() {
             log_operation "Clean Logs" "Success" "Removed logs older than 7 days"
             ;;
         2)
-            find "$BACKUP_DIR" -type f -mtime +7 -delete
-            echo -e "${GREEN}Old backups cleaned!${NC}"
-            log_operation "Clean Backups" "Success" "Removed backups older than 7 days"
-            ;;
-        3)
             read -p $'\033[1;36mConfirm output directory cleanup? [y/N]: \033[0m' confirm
             if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
                 find "$OUTPUT_DIR" -type f -delete
@@ -195,7 +188,6 @@ show_help() {
     echo "  - Video Compression: Multiple quality levels"
     echo "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
     echo "  - Watermarking: Add text watermarks"
-    echo "  - Backup Management: Automatic backups"
     echo "  - Log Viewer: Track operations"
     echo "  - System Cleaner: Manage storage"
     echo
@@ -233,22 +225,6 @@ choose_output_dir() {
     read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
 }
 
-# Function to create backup
-create_backup() {
-    local input_file="$1"
-    local backup_file="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_$(basename "$input_file")"
-    
-    if cp "$input_file" "$backup_file"; then
-        echo -e "${GREEN}Backup created: ${CYAN}$backup_file${NC}"
-        log_operation "Backup" "Success" "Created $backup_file"
-        return 0
-    else
-        echo -e "${RED}Failed to create backup!${NC}"
-        log_operation "Backup" "Failed" "Could not create $backup_file"
-        return 1
-    fi
-}
-
 # Generate unique output filename
 generate_output_name() {
     local input="$1"
@@ -266,15 +242,11 @@ generate_output_name() {
     echo "$output"
 }
 
-# Compression function with backup
+# Compression function
 compress_video() {
     local input="$1"
     local quality="$2"
     
-    if ! create_backup "$input"; then
-        return 1
-    fi
-
     local output=$(generate_output_name "$input" "compressed")
     local crf
     local preset
@@ -446,47 +418,6 @@ convert_menu() {
     done
 }
 
-# Backup menu
-backup_menu() {
-    while true; do
-        show_logo
-        draw_box "Backup Menu"
-        echo -e "${YELLOW}Available Backups:${NC}"
-        ls -lh "$BACKUP_DIR" | awk '{print $9, $5}' | grep -v '^$'
-        echo -e "\n${YELLOW}Options:${NC}"
-        echo "  [1] Restore Backup"
-        echo "  [2] Clean Old Backups"
-        echo "  [0] Back to Main Menu"
-        
-        read -p $'\033[1;36mSELECT OPTION [0-2]: \033[0m' choice
-
-        case $choice in
-            1)
-                read -p $'\033[1;36mEnter backup filename: \033[0m' backup_file
-                if [ -f "$BACKUP_DIR/$backup_file" ]; then
-                    cp "$BACKUP_DIR/$backup_file" "$OUTPUT_DIR/restored_$backup_file"
-                    echo -e "${GREEN}Backup restored to:${NC}"
-                    echo -e "${CYAN}$OUTPUT_DIR/restored_$backup_file${NC}"
-                    log_operation "Restore" "Success" "Restored $backup_file"
-                else
-                    echo -e "${RED}Backup file not found!${NC}"
-                    log_operation "Restore" "Failed" "File $backup_file not found"
-                fi
-                read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
-                ;;
-            2)
-                echo -e "${YELLOW}Cleaning backups older than 7 days...${NC}"
-                find "$BACKUP_DIR" -type f -mtime +7 -delete
-                echo -e "${GREEN}Cleanup complete!${NC}"
-                log_operation "Clean Backups" "Success" "Removed old backups"
-                read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
-                ;;
-            0) return ;;
-            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
-        esac
-    done
-}
-
 # Main menu
 main_menu() {
     while true; do
@@ -496,26 +427,24 @@ main_menu() {
         echo "  [1] Compress Video"
         echo "  [2] Convert Format"
         echo "  [3] Add Watermark"
-        echo "  [4] Backup Management"
-        echo "  [5] Change Output Directory"
-        echo "  [6] View Logs"
-        echo "  [7] System Cleaner"
-        echo "  [8] Check for Updates"
-        echo "  [9] Help & Documentation"
+        echo "  [4] Change Output Directory"
+        echo "  [5] View Logs"
+        echo "  [6] System Cleaner"
+        echo "  [7] Check for Updates"
+        echo "  [8] Help & Documentation"
         echo "  [0] Exit"
         
-        read -p $'\033[1;36mSELECT OPTION [0-9]: \033[0m' choice
+        read -p $'\033[1;36mSELECT OPTION [0-8]: \033[0m' choice
 
         case $choice in
             1) compression_menu ;;
             2) convert_menu ;;
             3) watermark_menu ;;
-            4) backup_menu ;;
-            5) choose_output_dir ;;
-            6) view_logs ;;
-            7) clean_system ;;
-            8) check_update ;;
-            9) show_help ;;
+            4) choose_output_dir ;;
+            5) view_logs ;;
+            6) clean_system ;;
+            7) check_update ;;
+            8) show_help ;;
             0)
                 show_logo
                 echo -e "${GREEN}Thanks for using $TOOL_NAME!${NC}"
