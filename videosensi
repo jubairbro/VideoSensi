@@ -478,7 +478,7 @@ watermark_menu() {
         echo -e "$YELLOW┃ [1] Add text watermark            "
         echo -e "$YELLOW┃ [0] Return to main menu           "
         echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
-        read -p "$CYAN Select [0-1]: $RESET" choice
+        read -p "$GREEN Select [0-1]: $RESET" choice
         case $choice in
             1)
                 read -p "$CYAN Video path: $RESET" path
