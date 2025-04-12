@@ -4,7 +4,7 @@
 # Version: 2.4
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
-# Description: Open source tool with boxed sub-menus, fast typing loading, and error handling
+# Description: Open source tool with fast typing loading and error handling
 
 # Initialize variables
 VERSION="2.4"
@@ -51,18 +51,18 @@ display_logo() {
     clear
     local color=$CYAN # Cyan logo
     echo -e "$color"
-    echo "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
-    echo "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗"
-    echo "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║"
-    echo "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║"
-    echo "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝"
-    echo "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
-    echo "┠──────────────────────────────────────┨"
-    echo "┃   $TOOL_NAME v$VERSION   "
-    echo "┃   Developed by $AUTHOR   "
-    echo "┃   Telegram: @JubairFF    "
-    echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
-    echo -e "$RESET"
+    echo -e "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+    echo -e "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
+    echo -e "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗"
+    echo -e "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║"
+    echo -e "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║"
+    echo -e "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝"
+    echo -e "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
+    echo -e "┠──────────────────────────────────────┨"
+    echo -e "┃   $TOOL_NAME v$VERSION   "
+    echo -e "┃   Developed by $AUTHOR   "
+    echo -e "┃   Telegram: @JubairFF    "
+    echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$color┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
     echo -e "$color┃          Tool Loaded!          "
     echo -e "$color┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
@@ -76,14 +76,14 @@ display_logo() {
     sleep 0.5
 }
 
-# Display menu box with colorful options and right-aligned ''
+# Display menu box with colorful options
 display_menu() {
     local title="$1"
     local color=$(get_random_color)
     echo -e "$color"
-    echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-    echo "┃         $title         "
-    echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+    echo -e "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+    echo -e "┃         $title         "
+    echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$RESET"
 }
 
@@ -204,9 +204,9 @@ view_logs() {
 clean_system() {
     display_menu "System Cleaner"
     echo -e "$MAGENTA Choose cleaning option:$RESET"
-    echo "  [1] Remove logs older than 7 days    "
-    echo "  [2] Clear output directory ($OUTPUT_DIR) "
-    echo "  [0] Return to main menu              "
+    echo -e "  [1] Remove logs older than 7 days"
+    echo -e "  [2] Clear output directory ($OUTPUT_DIR)"
+    echo -e "  [0] Return to main menu"
     read -p "$CYAN Select [0-2]: $RESET" choice
     case $choice in
         1)
@@ -241,21 +241,21 @@ show_help() {
     display_menu "Help & Guide"
     echo -e "$BLUE Welcome to $GREEN$TOOL_NAME $BLUEv$VERSION $BLUEby $MAGENTA$AUTHOR$RESET"
     echo -e "$CYAN Features:$RESET"
-    echo "  - Video Compression: 5 quality levels "
-    echo "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI "
-    echo "  - Watermarking: Add custom text       "
-    echo "  - Log Viewer: Track activities        "
-    echo "  - System Cleaner: Free up space       "
-    echo "  - Updates: Optional check             "
-    echo "  - Community: Join @JubairFF           "
+    echo -e "  - Video Compression: 5 quality levels"
+    echo -e "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
+    echo -e "  - Watermarking: Add custom text"
+    echo -e "  - Log Viewer: Track activities"
+    echo -e "  - System Cleaner: Free up space"
+    echo -e "  - Updates: Optional check"
+    echo -e "  - Community: Join @JubairFF"
     echo -e "$CYAN Usage Tips:$RESET"
-    echo "  - Use /sdcard/... paths               "
-    echo "  - Run 'termux-setup-storage'          "
-    echo "  - Check logs with option 5            "
-    echo "  - Join Telegram: @JubairFF            "
+    echo -e "  - Use /sdcard/... paths"
+    echo -e "  - Run 'termux-setup-storage'"
+    echo -e "  - Check logs with option 5"
+    echo -e "  - Join Telegram: @JubairFF"
     echo -e "$CYAN Contact:$RESET"
-    echo "  Telegram: @JubairFF                   "
-    echo "  GitHub: github.com/jubairbro          "
+    echo -e "  Telegram: @JubairFF"
+    echo -e "  GitHub: github.com/jubairbro"
     read -p "$CYAN Press ENTER to return...$RESET"
 }
 
@@ -453,7 +453,8 @@ compression_menu() {
         echo -e "$GREEN┃ [4] High (Better quality)        "
         echo -e "$GREEN┃ [5] Ultra High (Best quality)    "
         echo -e "$GREEN┃ [0] Return to main menu          "
-        echo -e "$GREEN┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
+        echo -e "$GREEN┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
         read -p "$CYAN Select [0-5]: $RESET" choice
         case $choice in
             1|2|3|4|5)
@@ -476,8 +477,9 @@ watermark_menu() {
         echo -e "$YELLOW┃ Select option:                    "
         echo -e "$YELLOW┃ [1] Add text watermark            "
         echo -e "$YELLOW┃ [0] Return to main menu           "
-        echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
-        read -p "$GREEN Select [0-1]: $RESET" choice
+        echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
+        read -p "$CYAN Select [0-1]: $RESET" choice
         case $choice in
             1)
                 read -p "$CYAN Video path: $RESET" path
@@ -504,7 +506,8 @@ conversion_menu() {
         echo -e "$MAGENTA┃ [4] WEBM (Web optimized)          "
         echo -e "$MAGENTA┃ [5] AVI (Legacy)                  "
         echo -e "$MAGENTA┃ [0] Return to main menu           "
-        echo -e "$MAGENTA┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
+        echo -e "$MAGENTA┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
         read -p "$CYAN Select [0-5]: $RESET" choice
         case $choice in
             1|2|3|4|5)
@@ -525,17 +528,18 @@ main_menu() {
         display_logo
         display_menu "Main Menu"
         echo -e "$BLUE┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-        echo -e "$GREEN┃ [1] $GREEN Compress Video$RESET                "
-        echo -e "$MAGENTA┃ [2] $MAGENTA Convert Format$RESET            "
-        echo -e "$YELLOW┃ [3] $YELLOW Add Watermark$RESET               "
-        echo -e "$CYAN┃ [4] $CYAN Change Output Directory$RESET         "
-        echo -e "$BLUE┃ [5] $BLUE View Logs$RESET                       "
-        echo -e "$GREEN┃ [6] $GREEN System Cleaner$RESET                "
-        echo -e "$MAGENTA┃ [7] $MAGENTA Check for Updates$RESET         "
-        echo -e "$YELLOW┃ [8] $YELLOW Help & Guide$RESET                "
-        echo -e "$CYAN┃ [9] $CYAN Join Telegram Community$RESET         "
-        echo -e "$BLUE┃ [0] $BLUE Exit$RESET                           "
-        echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
+        echo -e "$GREEN┃ [1] $GREEN Compress Video                "
+        echo -e "$MAGENTA┃ [2] $MAGENTA Convert Format            "
+        echo -e "$YELLOW┃ [3] $YELLOW Add Watermark               "
+        echo -e "$CYAN┃ [4] $CYAN Change Output Directory         "
+        echo -e "$BLUE┃ [5] $BLUE View Logs                       "
+        echo -e "$GREEN┃ [6] $GREEN System Cleaner                "
+        echo -e "$MAGENTA┃ [7] $MAGENTA Check for Updates         "
+        echo -e "$YELLOW┃ [8] $YELLOW Help & Guide                "
+        echo -e "$CYAN┃ [9] $CYAN Join Telegram Community         "
+        echo -e "$BLUE┃ [0] $BLUE Exit                           "
+        echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
         read -p "$CYAN Select [0-9]: $RESET" choice
         case $choice in
             1) compression_menu ;;
@@ -549,8 +553,8 @@ main_menu() {
             9) join_telegram ;;
             0)
                 display_logo
-                echo -e "$GREEN Thank you for using $TOOL_NAME!$RESET"
-                echo -e "$YELLOW Developed by $AUTHOR | Join: $CYAN@JubairFF$RESET"
+                echo -e "$GREEN Thank you for using $TOOL_NAME!"
+                echo -e "$YELLOW Developed by $AUTHOR | Join: $CYAN@JubairFF"
                 exit 0
                 ;;
             *) echo -e "$RED Invalid choice!$RESET"; sleep 1 ;;
