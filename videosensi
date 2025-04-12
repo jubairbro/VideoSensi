@@ -322,16 +322,16 @@ display_processing() {
 
 # Display progress bar
 display_progress_bar() {
-    local duration="$1"
+    local max_progress="$1"
     local pid="$2"
     local progress=0
     while kill -0 "$pid" 2>/dev/null; do
         sleep 0.5
         progress=$((progress + 1))
-        if [ "$progress" -gt 100 ]; then progress=100; fi
-        printf "\r\033[K$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"  # \033[K clears line
+        if [ "$progress" -gt "$max_progress" ]; then progress="$max_progress"; fi
+        printf "\r%-70s\033[0K$YELLOW Progress: [%-50s] %d%%$RESET" "" "$(printf '=%.0s' $(seq 1 $((progress*50/max_progress))))" "$progress"
     done
-    echo -en "\r\033[K$RESET"  # Clear line after completion
+    printf "\r%-70s\033[0K$RESET\n" ""  # Clear line and move to new line
 }
 
 # Compress video with progress bar and typing effect
@@ -355,14 +355,15 @@ compress_video() {
     display_processing "Processing"
     (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_progress_bar 100 "$pid"  # Simple progress bar based on time
+    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
+    display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
     wait "$pid"
     if [ $? -eq 0 ]; then
-        echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
+        echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "compress" "success" "level:$quality output:$output"
         return 0
     else
-        echo -e "\r$RED Compression failed! Check input or ffmpeg.$RESET"
+        echo -e "$RED Compression failed! Check input or ffmpeg.$RESET"
         log_operation "compress" "failed" "level:$quality input:$input"
         return 1
     fi
@@ -386,14 +387,15 @@ add_watermark() {
     display_processing "Processing"
     (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_progress_bar 100 "$pid"  # Simple progress bar based on time
+    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
+    display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
     wait "$pid"
     if [ $? -eq 0 ]; then
-        echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
+        echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "watermark" "success" "text:'$text' output:$output"
         return 0
     else
-        echo -e "\r$RED Watermark failed! Check input or ffmpeg.$RESET"
+        echo -e "$RED Watermark failed! Check input or ffmpeg.$RESET"
         log_operation "watermark" "failed" "text:'$text' input:$input"
         return 1
     fi
@@ -420,14 +422,15 @@ convert_video() {
     display_processing "Processing"
     (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_progress_bar 100 "$pid"  # Simple progress bar based on time
+    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
+    display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
     wait "$pid"
     if [ $? -eq 0 ]; then
-        echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
+        echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "convert" "success" "format:$ext output:$output"
         return 0
     else
-        echo -e "\r$RED Conversion failed! Check input or ffmpeg.$RESET"
+        echo -e "$RED Conversion failed! Check input or ffmpeg.$RESET"
         log_operation "convert" "failed" "format:$ext input:$input"
         return 1
     fi
