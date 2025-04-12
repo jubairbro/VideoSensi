@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# VideoSensi Custom Setup Script
-# Version: 2.0
+# VideoSensi Setup Script
+# Version: 2.2
 # Author: Jubair (@JubairFF)
 
 # Colors
@@ -12,6 +12,10 @@ BLUE='\033[1;34m'
 PURPLE='\033[1;35m'
 CYAN='\033[1;36m'
 NC='\033[0m'
+
+# GitHub Repository
+REPO_URL="https://github.com/jubairbro/VideoSensi"
+RAW_URL="https://raw.githubusercontent.com/jubairbro/VideoSensi/main"
 
 # Animation
 spinner() {
@@ -38,6 +42,8 @@ header() {
     echo "║           For Termux on Android                ║"
     echo "╚════════════════════════════════════════════════╝"
     echo -e "${NC}"
+    echo -e "${YELLOW}Version: 2.2 | By Jubair (@JubairFF)${NC}"
+    echo
 }
 
 # Check Termux
@@ -45,16 +51,6 @@ check_termux() {
     if [ ! -d "$PREFIX" ]; then
         echo -e "${RED}Error: This script must be run in Termux!${NC}"
         echo -e "${YELLOW}Please install Termux from Play Store or F-Droid.${NC}"
-        exit 1
-    fi
-}
-
-# Check Internet
-check_internet() {
-    echo -e "${BLUE}Checking internet connection...${NC}"
-    if ! ping -c 1 google.com &> /dev/null; then
-        echo -e "${RED}Error: No internet connection!${NC}"
-        echo -e "${YELLOW}Please connect to the internet and try again.${NC}"
         exit 1
     fi
 }
@@ -74,7 +70,6 @@ install_deps() {
         echo -e " ${GREEN}Done!${NC}"
     done
     
-    # Check if ImageMagick is needed (for watermark feature)
     if ! command -v convert &> /dev/null; then
         echo -ne "${YELLOW}Installing ImageMagick...${NC}"
         pkg install -y imagemagick &> /dev/null &
@@ -83,61 +78,68 @@ install_deps() {
     fi
 }
 
-# Download VideoSensi
-download_script() {
-    echo -e "\n${BLUE}Downloading VideoSensi...${NC}"
+# Download Files
+download_files() {
+    echo -e "\n${BLUE}Downloading VideoSensi files...${NC}"
     
-    # Try GitHub first
-    echo -ne "${YELLOW}Trying GitHub...${NC}"
-    if curl -sL -o videosensi.sh "https://raw.githubusercontent.com/JubairFF/videosensi/main/videosensi.sh"; then
-        echo -e " ${GREEN}Success!${NC}"
-    else
-        # Fallback to direct download
-        echo -e "\n${YELLOW}GitHub failed, trying fallback server...${NC}"
-        if curl -sL -o videosensi.sh "https://example.com/videosensi/videosensi.sh"; then
-            echo -e " ${GREEN}Success!${NC}"
-        else
+    declare -A files=(
+        ["videosensi"]="videosensi"
+        ["update.txt"]="update.txt"
+        ["README.md"]="README.md"
+    )
+    
+    for file in "${!files[@]}"; do
+        echo -ne "${YELLOW}Downloading $file...${NC}"
+        if ! curl -sL -o "$file" "$RAW_URL/${files[$file]}"; then
             echo -e " ${RED}Failed!${NC}"
-            echo -e "${RED}Could not download VideoSensi. Please try again later.${NC}"
+            echo -e "${RED}Error downloading ${files[$file]}${NC}"
             exit 1
         fi
-    fi
-    
-    chmod +x videosensi.sh
+        echo -e " ${GREEN}Success!${NC}"
+        [ "$file" == "videosensi" ] && chmod +x "$file"
+    done
 }
 
 # Install Script
 install_script() {
     echo -e "\n${BLUE}Installing VideoSensi...${NC}"
     
-    # Check if already installed
     if [ -f "$PREFIX/bin/videosensi" ]; then
         echo -ne "${YELLOW}Removing previous version...${NC}"
-        rm -f "$PREFIX/bin/videosensi"
+        rm -f "$PREFIX/bin/videosensi" || {
+            echo -e " ${RED}Failed!${NC}"
+            exit 1
+        }
         echo -e " ${GREEN}Done!${NC}"
     fi
     
-    # Install new version
     echo -ne "${YELLOW}Setting up global access...${NC}"
-    cp videosensi.sh "$PREFIX/bin/videosensi"
-    chmod +x "$PREFIX/bin/videosensi"
+    if ! mv videosensi "$PREFIX/bin/" || ! chmod +x "$PREFIX/bin/videosensi"; then
+        echo -e " ${RED}Failed!${NC}"
+        exit 1
+    fi
     echo -e " ${GREEN}Done!${NC}"
     
-    # Create config directory
     echo -ne "${YELLOW}Creating config directory...${NC}"
-    mkdir -p "$HOME/.videosensi/logs"
+    mkdir -p "$HOME/.videosensi/logs" || {
+        echo -e " ${RED}Failed!${NC}"
+        exit 1
+    }
     echo -e " ${GREEN}Done!${NC}"
     
-    # Create default watermark
-    echo -ne "${YELLOW}Creating default watermark...${NC}"
     if command -v convert &> /dev/null; then
+        echo -ne "${YELLOW}Creating default watermark...${NC}"
         convert -size 200x50 xc:none -fill '#FFFFFF80' -pointsize 20 \
                 -gravity center -annotate 0 'JubairFF' \
-                "$HOME/.videosensi/watermark.png" &> /dev/null
+                "$HOME/.videosensi/watermark.png" &> /dev/null || {
+            echo -e " ${YELLOW}Warning: Failed to create watermark${NC}"
+        }
         echo -e " ${GREEN}Done!${NC}"
-    else
-        echo -e " ${YELLOW}Skipped (ImageMagick not available)${NC}"
     fi
+    
+    mv update.txt README.md "$HOME/.videosensi/" || {
+        echo -e "${YELLOW}Warning: Failed to move documentation files${NC}"
+    }
 }
 
 # Post Install
@@ -150,31 +152,21 @@ post_install() {
     echo -e "${NC}"
     echo -e "${YELLOW}To start VideoSensi, just type:${NC}"
     echo -e "  ${GREEN}videosensi${NC}"
-    echo -e "\n${YELLOW}For support, join our Telegram channel:${NC}"
+    echo -e "\n${YELLOW}Documentation:${NC}"
+    echo -e "  ${BLUE}cat ~/.videosensi/README.md${NC}"
+    echo -e "\n${YELLOW}For support:${NC}"
     echo -e "  ${CYAN}https://t.me/JubairFF${NC}"
-    
-    # Check if we can add alias to bashrc
-    if [ -f "$HOME/.bashrc" ]; then
-        if ! grep -q "alias vs='videosensi'" "$HOME/.bashrc"; then
-            echo -e "\n${YELLOW}Would you like to create a shortcut alias? (y/n)${NC}"
-            read -p "Choice: " choice
-            if [[ "$choice" =~ ^[Yy] ]]; then
-                echo "alias vs='videosensi'" >> "$HOME/.bashrc"
-                echo -e "${GREEN}Shortcut created! You can now use 'vs' to launch VideoSensi.${NC}"
-                echo -e "${YELLOW}Restart Termux or run: source ~/.bashrc${NC}"
-            fi
-        fi
-    fi
+    echo -e "\n${YELLOW}GitHub Repository:${NC}"
+    echo -e "  ${BLUE}https://github.com/jubairbro/VideoSensi${NC}"
 }
 
 # Main Execution
 header
 check_termux
-check_internet
 install_deps
-download_script
+download_files
 install_script
 post_install
 
 # Cleanup
-rm -f videosensi.sh &> /dev/null
+rm -f videosensi update.txt README.md &> /dev/null
