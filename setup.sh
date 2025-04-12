@@ -4,17 +4,17 @@
 # Developer: Jubair bro
 # Telegram: https://t.me/JubairFF
 # GitHub: github.com/jubairbro
-# Installer Version: 1.2
-# Purpose: Fully automated installer for VideoSensi with animations and robust error handling
+# Installer Version: 1.3
+# Purpose: Fully automated installer using git clone with animations
 
 # Configuration
-INSTALLER_VERSION="1.2"
+INSTALLER_VERSION="1.3"
 TOOL_NAME="VideoSensi Pro"
 SCRIPT_VERSION="2.4"
 INSTALL_DIR="/data/data/com.termux/files/usr/bin"
 SCRIPT_NAME="videosensi"
-GITHUB_URL="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
-TEMP_SCRIPT="/tmp/videosensi_temp"
+REPO_URL="https://github.com/jubairbro/VideoSensi.git"
+CLONE_DIR="$HOME/VideoSensi_temp"
 LOG_FILE="$HOME/videosensi_setup.log"
 
 # Colors
@@ -97,6 +97,12 @@ remove_previous() {
             echo -e "${RED}Failed to remove config/logs!${NC}"
             log_message "Failed to remove config/logs"
         fi
+    fi
+    if [ -d "$CLONE_DIR" ]; then
+        echo -e "${YELLOW}Removing old clone directory...${NC}"
+        rm -rf "$CLONE_DIR"
+        echo -e "${GREEN}Old clone directory removed!${NC}"
+        log_message "Removed old clone directory"
     fi
     sleep 1
 }
@@ -220,45 +226,34 @@ setup_storage() {
     sleep 1
 }
 
-# Download and install VideoSensi
+# Clone repository and install VideoSensi
 install_videosensi() {
     draw_box "Installing VideoSensi"
-    echo -e "${YELLOW}Downloading VideoSensi v$SCRIPT_VERSION...${NC}"
-    local retries=3
-    local attempt=1
-    local success=0
+    echo -e "${YELLOW}Cloning repository...${NC}"
     local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-    while [ $attempt -le $retries ]; do
-        echo -e "${YELLOW}Attempt $attempt of $retries...${NC}"
-        (curl -s --fail -o "$TEMP_SCRIPT" "$GITHUB_URL" 2>&1) &
-        local pid=$!
-        local i=0
-        while kill -0 $pid 2>/dev/null; do
-            echo -en "\r${YELLOW}Downloading... ${animation[$((i % 10))]}${NC}"
-            sleep 0.2
-            ((i++))
-        done
-        wait $pid
-        if [ $? -eq 0 ] && [ -s "$TEMP_SCRIPT" ]; then
-            success=1
-            echo -e "\r${GREEN}Script downloaded successfully!          ${NC}"
-            log_message "Downloaded script from $GITHUB_URL"
-            break
-        else
-            echo -e "\r${RED}Download failed on attempt $attempt!${NC}"
-            log_message "Download failed on attempt $attempt"
-            sleep 2
-        fi
-        ((attempt++))
+    if [ -d "$CLONE_DIR" ]; then
+        rm -rf "$CLONE_DIR"
+    fi
+    (git clone "$REPO_URL" "$CLONE_DIR" > /dev/null 2>&1) &
+    local pid=$!
+    local i=0
+    while kill -0 $pid 2>/dev/null; do
+        echo -en "\r${YELLOW}Cloning... ${animation[$((i % 10))]}${NC}"
+        sleep 0.2
+        ((i++))
     done
-    if [ $success -eq 0 ]; then
-        echo -e "${RED}Failed to download script after $retries attempts! Check network or URL: $GITHUB_URL${NC}"
+    wait $pid
+    if [ $? -eq 0 ] && [ -f "$CLONE_DIR/$SCRIPT_NAME" ]; then
+        echo -e "\r${GREEN}Repository cloned successfully!          ${NC}"
+        log_message "Cloned repository from $REPO_URL"
+    else
+        echo -e "\r${RED}Failed to clone repository! Check network or URL: $REPO_URL${NC}"
         echo -e "${YELLOW}Debug log: $LOG_FILE${NC}"
-        log_message "Failed to download script after $retries attempts"
+        log_message "Failed to clone repository"
         exit 1
     fi
     echo -e "${YELLOW}Installing to $INSTALL_DIR/$SCRIPT_NAME...${NC}"
-    if mv "$TEMP_SCRIPT" "$INSTALL_DIR/$SCRIPT_NAME" 2>&1; then
+    if mv "$CLONE_DIR/$SCRIPT_NAME" "$INSTALL_DIR/$SCRIPT_NAME" 2>&1; then
         echo -e "${GREEN}Script installed to $INSTALL_DIR/$SCRIPT_NAME${NC}"
         log_message "Installed script to $INSTALL_DIR/$SCRIPT_NAME"
         if chmod +x "$INSTALL_DIR/$SCRIPT_NAME" 2>&1; then
@@ -273,6 +268,11 @@ install_videosensi() {
         echo -e "${RED}Failed to install script! Check permissions at $INSTALL_DIR${NC}"
         log_message "Failed to install script to $INSTALL_DIR/$SCRIPT_NAME"
         exit 1
+    fi
+    # Clean up
+    if [ -d "$CLONE_DIR" ]; then
+        rm -rf "$CLONE_DIR"
+        log_message "Cleaned up clone directory"
     fi
     sleep 1
 }
