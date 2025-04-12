@@ -4,18 +4,18 @@
 # Developer: Jubair bro
 # Telegram: https://t.me/JubairFF
 # GitHub: github.com/jubairbro
-# Installer Version: 1.1
+# Installer Version: 1.2
 # Purpose: Fully automated installer for VideoSensi with animations and robust error handling
 
 # Configuration
-INSTALLER_VERSION="1.1"
+INSTALLER_VERSION="1.2"
 TOOL_NAME="VideoSensi Pro"
 SCRIPT_VERSION="2.4"
 INSTALL_DIR="/data/data/com.termux/files/usr/bin"
 SCRIPT_NAME="videosensi"
 GITHUB_URL="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
 TEMP_SCRIPT="/tmp/videosensi_temp"
-LOG_FILE="/tmp/videosensi_setup.log"
+LOG_FILE="$HOME/videosensi_setup.log"
 
 # Colors
 RED='\033[1;31m'
@@ -26,7 +26,13 @@ NC='\033[0m'
 
 # Initialize log
 log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+    local message="$1"
+    if touch "$LOG_FILE" 2>/dev/null; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $message" >> "$LOG_FILE" 2>/dev/null || echo -e "${YELLOW}Warning: Failed to write to $LOG_FILE${NC}" >&2
+    else
+        echo -e "${YELLOW}Warning: Cannot create $LOG_FILE, logging to stderr${NC}" >&2
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $message" >&2
+    fi
 }
 
 # Show animated logo
@@ -100,7 +106,7 @@ update_packages() {
     draw_box "Updating Packages"
     echo -e "${YELLOW}Running pkg update...${NC}"
     local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-    (pkg update -y > /dev/null 2>> "$LOG_FILE") &
+    (pkg update -y > /dev/null 2>&1) &
     local pid=$!
     local i=0
     while kill -0 $pid 2>/dev/null; do
@@ -113,12 +119,12 @@ update_packages() {
         echo -e "\r${GREEN}Package update complete!          ${NC}"
         log_message "Package update successful"
     else
-        echo -e "\r${RED}Failed to update packages! Check network or logs at $LOG_FILE${NC}"
+        echo -e "\r${RED}Failed to update packages! Check network.${NC}"
         log_message "Failed to update packages"
         exit 1
     fi
     echo -e "${YELLOW}Running pkg upgrade...${NC}"
-    (pkg upgrade -y > /dev/null 2>> "$LOG_FILE") &
+    (pkg upgrade -y > /dev/null 2>&1) &
     pid=$!
     i=0
     while kill -0 $pid 2>/dev/null; do
@@ -131,7 +137,7 @@ update_packages() {
         echo -e "\r${GREEN}Package upgrade complete!          ${NC}"
         log_message "Package upgrade successful"
     else
-        echo -e "\r${RED}Failed to upgrade packages! Check network or logs at $LOG_FILE${NC}"
+        echo -e "\r${RED}Failed to upgrade packages! Check network.${NC}"
         log_message "Failed to upgrade packages"
         exit 1
     fi
@@ -147,7 +153,7 @@ install_dependencies() {
         if ! command -v "$dep" > /dev/null 2>&1; then
             echo -e "${YELLOW}Installing $dep...${NC}"
             local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-            (pkg install -y "$dep" > /dev/null 2>> "$LOG_FILE") &
+            (pkg install -y "$dep" > /dev/null 2>&1) &
             local pid=$!
             local i=0
             while kill -0 $pid 2>/dev/null; do
@@ -179,7 +185,7 @@ setup_storage() {
     if ! [ -d "/sdcard" ] || ! touch "/sdcard/test.txt" 2>/dev/null; then
         echo -e "${YELLOW}Setting up storage access...${NC}"
         local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-        (termux-setup-storage > /dev/null 2>> "$LOG_FILE") &
+        (termux-setup-storage > /dev/null 2>&1) &
         local pid=$!
         local i=0
         while kill -0 $pid 2>/dev/null; do
@@ -224,7 +230,7 @@ install_videosensi() {
     local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
     while [ $attempt -le $retries ]; do
         echo -e "${YELLOW}Attempt $attempt of $retries...${NC}"
-        (curl -s --fail -o "$TEMP_SCRIPT" "$GITHUB_URL" 2>> "$LOG_FILE") &
+        (curl -s --fail -o "$TEMP_SCRIPT" "$GITHUB_URL" 2>&1) &
         local pid=$!
         local i=0
         while kill -0 $pid 2>/dev/null; do
@@ -252,10 +258,10 @@ install_videosensi() {
         exit 1
     fi
     echo -e "${YELLOW}Installing to $INSTALL_DIR/$SCRIPT_NAME...${NC}"
-    if mv "$TEMP_SCRIPT" "$INSTALL_DIR/$SCRIPT_NAME" 2>> "$LOG_FILE"; then
+    if mv "$TEMP_SCRIPT" "$INSTALL_DIR/$SCRIPT_NAME" 2>&1; then
         echo -e "${GREEN}Script installed to $INSTALL_DIR/$SCRIPT_NAME${NC}"
         log_message "Installed script to $INSTALL_DIR/$SCRIPT_NAME"
-        if chmod +x "$INSTALL_DIR/$SCRIPT_NAME" 2>> "$LOG_FILE"; then
+        if chmod +x "$INSTALL_DIR/$SCRIPT_NAME" 2>&1; then
             echo -e "${GREEN}Script made executable!${NC}"
             log_message "Made script executable"
         else
@@ -264,7 +270,7 @@ install_videosensi() {
             exit 1
         fi
     else
-        echo -e "${RED}Failed to install script! Check permissions at $INSTALL_DIR or logs at $LOG_FILE${NC}"
+        echo -e "${RED}Failed to install script! Check permissions at $INSTALL_DIR${NC}"
         log_message "Failed to install script to $INSTALL_DIR/$SCRIPT_NAME"
         exit 1
     fi
