@@ -4,7 +4,7 @@
 # Developer: Jubair bro 
 # Telegram: https://t.me/JubairFF
 # GitHub: github.com/jubairbro
-# Purpose: Video processing tool for compression, conversion, watermarking
+# Purpose: Video processing tool for compression, conversion, watermarking, and community engagement
 
 # Configuration
 VERSION="2.4"
@@ -16,6 +16,7 @@ OUTPUT_DIR="/sdcard/VideoSensi"
 LOG_FILE="$LOG_DIR/operation_$(date +%Y%m%d).log"
 FFMPEG_LOG="$LOG_DIR/ffmpeg_error.log"
 GITHUB_REPO="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
+TELEGRAM_LINK="https://t.me/JubairFF"
 
 # Initialize directories
 if ! mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$OUTPUT_DIR"; then
@@ -115,6 +116,28 @@ validate_file() {
         return 1
     fi
     return 0
+}
+
+# Join Telegram community
+join_telegram() {
+    show_logo
+    draw_box "Join Telegram Community"
+    echo -e "${YELLOW}Connect with us on Telegram at ${CYAN}@JubairFF${NC}"
+    read -p $'\033[1;36mJoin our Telegram community? [y/N]: \033[0m' choice
+    if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
+        echo -e "${YELLOW}Opening Telegram...${NC}"
+        if am start -a android.intent.action.VIEW -d "$TELEGRAM_LINK" > /dev/null 2>&1; then
+            echo -e "${GREEN}Telegram link opened successfully!${NC}"
+            log_operation "Join Telegram" "Success" "Opened $TELEGRAM_LINK"
+        else
+            echo -e "${RED}Failed to open Telegram! Please install Telegram or open manually: ${CYAN}$TELEGRAM_LINK${NC}"
+            log_operation "Join Telegram" "Failed" "Could not open $TELEGRAM_LINK"
+        fi
+    else
+        echo -e "${YELLOW}Cancelled. You can join later!${NC}"
+        log_operation "Join Telegram" "Cancelled" "User declined to join"
+    fi
+    read -p $'\033[1;36mPress ENTER to continue...\033[0m' dummy
 }
 
 # Script updater
@@ -222,11 +245,13 @@ show_help() {
     echo "  - Log Viewer: Track operations"
     echo "  - Cleaner: Manage storage"
     echo "  - Updater: Check for new versions"
+    echo "  - Telegram: Join our community (@JubairFF)"
     echo
     echo -e "${CYAN}Usage Tips:${NC}"
     echo "  - Copy video paths from file manager (e.g., /sdcard/video.mp4)"
     echo "  - Ensure storage permission: 'termux-setup-storage'"
     echo "  - Check logs for errors (option 5)"
+    echo "  - Join Telegram for updates and support"
     echo
     echo -e "${CYAN}Contact:${NC}"
     echo "  Telegram: @JubairFF"
@@ -548,8 +573,9 @@ main_menu() {
         echo "  [6] System Cleaner"
         echo "  [7] Check for Updates"
         echo "  [8] Help & Documentation"
+        echo "  [9] Join Telegram Community"
         echo "  [0] Exit"
-        read -p $'\033[1;36mSELECT OPTION [0-8]: \033[0m' choice
+        read -p $'\033[1;36mSELECT OPTION [0-9]: \033[0m' choice
         case $choice in
             1)
                 compression_menu
@@ -574,6 +600,9 @@ main_menu() {
                 ;;
             8)
                 show_help
+                ;;
+            9)
+                join_telegram
                 ;;
             0)
                 show_logo
