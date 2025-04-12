@@ -329,9 +329,9 @@ display_progress_bar() {
         sleep 0.5
         progress=$((progress + 1))
         if [ "$progress" -gt 100 ]; then progress=100; fi
-        printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
+        printf "\r\033[K$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"  # \033[K clears line
     done
-    echo -en "\r$RESET"
+    echo -en "\r\033[K$RESET"  # Clear line after completion
 }
 
 # Compress video with progress bar and typing effect
