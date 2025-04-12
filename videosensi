@@ -4,7 +4,7 @@
 # Version: 2.4
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
-# Description: Open source tool with dual logos, progress bar, and error handling
+# Description: Open source tool with colorful UI, boxed menu, and error handling
 
 # Initialize variables
 VERSION="2.4"
@@ -22,7 +22,7 @@ TELEGRAM_LINK="https://t.me/JubairFF"
 mkdir -p "$BASE_DIR" "$LOG_DIR" "$OUTPUT_DIR" 2>/dev/null || { echo -e "\033[1;31mError: Failed to create directories! Check permissions.\033[0m"; exit 1; }
 
 # Color definitions
-COLORS=('\033[1;31m' '\033[1;32m' '\033[1;33m' '\033[1;34m' '\033[1;35m' '\033[1;36m')
+COLORS=('\033[1;34m' '\033[1;32m' '\033[1;33m' '\033[1;35m' '\033[1;36m') # Blue, Green, Yellow, Magenta, Cyan
 RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
@@ -31,7 +31,7 @@ MAGENTA='\033[1;35m'
 CYAN='\033[1;36m'
 RESET='\033[0m'
 
-# Get random color
+# Get random color (excluding red for UI)
 get_random_color() {
     echo "${COLORS[$RANDOM % ${#COLORS[@]}]}"
 }
@@ -39,23 +39,23 @@ get_random_color() {
 # Display dual logos with separator
 display_logo() {
     clear
-    local color=$(get_random_color)
+    local color=$CYAN # Cyan logo instead of red
     echo -e "$color"
     echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-    echo "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗┃"
-    echo "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗┃"
-    echo "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║┃"
-    echo "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║┃"
-    echo "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝┃"
-    echo "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ ┃"
+    echo "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
+    echo "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗"
+    echo "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║"
+    echo "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║"
+    echo "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝"
+    echo "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
     echo "┠──────────────────────────────────────┨"
-    echo "┃   VideoSensi Pro v$VERSION   ┃"
-    echo "┃   Developed by $AUTHOR       ┃"
-    echo "┃   Telegram: @JubairFF        ┃"
+    echo "┃   $TOOL_NAME v$VERSION   "
+    echo "┃   Developed by $AUTHOR   "
+    echo "┃   Telegram: @JubairFF    "
     echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$RESET"
     echo -e "$color┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓$RESET"
-    echo -e "$color┃          Tool Loaded!          ┃$RESET"
+    echo -e "$color┃          Tool Loaded!          $RESET"
     echo -e "$color┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
     local spinner=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
     for i in {1..10}; do
@@ -66,13 +66,13 @@ display_logo() {
     sleep 1
 }
 
-# Display menu box
+# Display menu box with colorful options
 display_menu() {
     local title="$1"
     local color=$(get_random_color)
     echo -e "$color"
     echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-    echo "┃         $title         ┃"
+    echo "┃         $title         "
     echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$RESET"
 }
@@ -87,12 +87,12 @@ log_operation() {
 
 # Check dependencies with fallback
 check_dependencies() {
-    local deps=("ffmpeg" "curl" "git")
+    local deps=("ffmpeg" "curl" "git" "ffprobe")
     for dep in "${deps[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
-            echo -e "$RED Warning: $dep missing. Attempting install...$RESET"
+            echo -e "$YELLOW Warning: $dep missing. Attempting install...$RESET"
             if ! pkg install -y "$dep" 2>/dev/null; then
-                echo -e "$RED Error: Failed to install $dep. Please install manually.$RESET"
+                echo -e "$RED Error: Failed to install $dep. Install manually.$RESET"
                 exit 1
             fi
         fi
@@ -113,8 +113,8 @@ validate_file() {
 # Join Telegram with error handling
 join_telegram() {
     display_menu "Join Telegram Community"
-    echo -e "$YELLOW Connect with $AUTHOR on Telegram: $CYAN@JubairFF$RESET"
-    echo -e "$YELLOW Get updates, support, and more!$RESET"
+    echo -e "$MAGENTA Connect with $AUTHOR on Telegram: $CYAN@JubairFF$RESET"
+    echo -e "$MAGENTA Get updates, support, and more!$RESET"
     read -p "$CYAN Join now? [y/N]: $RESET" choice
     if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
         echo -e "$YELLOW Opening Telegram link...$RESET"
@@ -122,7 +122,7 @@ join_telegram() {
             echo -e "$GREEN Successfully opened @JubairFF!$RESET"
             log_operation "telegram_join" "success" "link:$TELEGRAM_LINK"
         else
-            echo -e "$RED Error: Telegram not found or failed to open. Install Telegram.$RESET"
+            echo -e "$RED Error: Telegram not found or failed. Install Telegram.$RESET"
             log_operation "telegram_join" "failed" "link:$TELEGRAM_LINK"
         fi
     else
@@ -174,7 +174,7 @@ check_update() {
 # View logs
 view_logs() {
     display_menu "View Logs"
-    echo -e "$YELLOW Recent tool activity:$RESET"
+    echo -e "$BLUE Recent tool activity:$RESET"
     if [ -f "$OP_LOG" ]; then
         tail -n 20 "$OP_LOG" | while read -r line; do
             echo -e "$CYAN$line$RESET"
@@ -188,7 +188,7 @@ view_logs() {
 # Clean system
 clean_system() {
     display_menu "System Cleaner"
-    echo -e "$YELLOW Choose cleaning option:$RESET"
+    echo -e "$MAGENTA Choose cleaning option:$RESET"
     echo "  [1] Remove logs older than 7 days"
     echo "  [2] Clear output directory ($OUTPUT_DIR)"
     echo "  [0] Return to main menu"
@@ -224,19 +224,19 @@ clean_system() {
 # Show help
 show_help() {
     display_menu "Help & Guide"
-    echo -e "$YELLOW Welcome to $TOOL_NAME v$VERSION by $AUTHOR$RESET"
+    echo -e "$BLUE Welcome to $TOOL_NAME v$VERSION by $AUTHOR$RESET"
     echo -e "$CYAN Features:$RESET"
-    echo "  - Video Compression: 5 quality levels to reduce size"
-    echo "  - Format Conversion: Convert to MP4, MKV, MOV, WEBM, AVI"
-    echo "  - Watermarking: Add custom text to videos"
-    echo "  - Log Viewer: Track all tool activities"
+    echo "  - Video Compression: 5 quality levels"
+    echo "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
+    echo "  - Watermarking: Add custom text"
+    echo "  - Log Viewer: Track activities"
     echo "  - System Cleaner: Free up space"
-    echo "  - Updates: Optional check for latest version"
-    echo "  - Community: Join @JubairFF for support"
+    echo "  - Updates: Optional check"
+    echo "  - Community: Join @JubairFF"
     echo -e "$CYAN Usage Tips:$RESET"
-    echo "  - Use /sdcard/... paths from file manager"
-    echo "  - Run 'termux-setup-storage' for access"
-    echo "  - Check logs with option 5 for issues"
+    echo "  - Use /sdcard/... paths"
+    echo "  - Run 'termux-setup-storage'"
+    echo "  - Check logs with option 5"
     echo "  - Join Telegram: @JubairFF"
     echo -e "$CYAN Contact:$RESET"
     echo "  Telegram: @JubairFF"
@@ -297,13 +297,15 @@ compress_video() {
         5) crf=16; preset="veryslow" ;;
     esac
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
-    rm -f "$ERROR_LOG" 2>/dev/null
+    rm -f "$ERROR_LOG" "/tmp/ffmpeg_progress" 2>/dev/null
     (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p -f null - 2>/tmp/ffmpeg_progress) &
     local pid=$!
+    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 0)
     local progress=0
     while kill -0 "$pid" 2>/dev/null; do
         if [ -f "/tmp/ffmpeg_progress" ]; then
-            progress=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' | awk '{print int(($1/'$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null)')*100)}')
+            local current_time=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' || echo 0)
+            progress=$((current_time * 100 / duration))
             progress=${progress:-0}
             printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
         fi
@@ -311,7 +313,7 @@ compress_video() {
     done
     wait "$pid"
     rm -f "/tmp/ffmpeg_progress" 2>/dev/null
-    if [ -f "$output" ]; then
+    if ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG"; then
         echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "compress" "success" "level:$quality output:$output"
         return 0
@@ -337,13 +339,15 @@ add_watermark() {
     fi
     local output=$(get_output_file "$input" "watermarked")
     echo -e "$YELLOW Adding watermark...$RESET"
-    rm -f "$ERROR_LOG" 2>/dev/null
+    rm -f "$ERROR_LOG" "/tmp/ffmpeg_progress" 2>/dev/null
     (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy -f null - 2>/tmp/ffmpeg_progress) &
     local pid=$!
+    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 0)
     local progress=0
     while kill -0 "$pid" 2>/dev/null; do
         if [ -f "/tmp/ffmpeg_progress" ]; then
-            progress=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' | awk '{print int(($1/'$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null)')*100)}')
+            local current_time=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' || echo 0)
+            progress=$((current_time * 100 / duration))
             progress=${progress:-0}
             printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
         fi
@@ -380,13 +384,15 @@ convert_video() {
         5) codec="mpeg4"; ext="avi" ;;
     esac
     echo -e "$YELLOW Converting to $ext...$RESET"
-    rm -f "$ERROR_LOG" 2>/dev/null
+    rm -f "$ERROR_LOG" "/tmp/ffmpeg_progress" 2>/dev/null
     (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p -f null - 2>/tmp/ffmpeg_progress) &
     local pid=$!
+    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 0)
     local progress=0
     while kill -0 "$pid" 2>/dev/null; do
         if [ -f "/tmp/ffmpeg_progress" ]; then
-            progress=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' | awk '{print int(($1/'$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null)')*100)}')
+            local current_time=$(grep -oP 'time=\K\d+:\d+:\d+' /tmp/ffmpeg_progress | awk -F: '{print ($1*3600)+($2*60)+$3}' || echo 0)
+            progress=$((current_time * 100 / duration))
             progress=${progress:-0}
             printf "\r$YELLOW Progress: [%-50s] %d%%$RESET" "$(printf '=%.0s' $(seq 1 $((progress/2))))" "$progress"
         fi
@@ -409,7 +415,7 @@ convert_video() {
 compression_menu() {
     while true; do
         display_menu "Video Compression"
-        echo -e "$YELLOW Select quality level:$RESET"
+        echo -e "$BLUE Select quality level:$RESET"
         echo "  [1] Ultra Low (Smallest size)"
         echo "  [2] Low (Good quality, smaller)"
         echo "  [3] Medium (Balanced)"
@@ -434,7 +440,7 @@ compression_menu() {
 watermark_menu() {
     while true; do
         display_menu "Add Watermark"
-        echo -e "$YELLOW Select option:$RESET"
+        echo -e "$MAGENTA Select option:$RESET"
         echo "  [1] Add text watermark"
         echo "  [0] Return to main menu"
         read -p "$CYAN Select [0-1]: $RESET" choice
@@ -456,7 +462,7 @@ watermark_menu() {
 conversion_menu() {
     while true; do
         display_menu "Convert Format"
-        echo -e "$YELLOW Select format:$RESET"
+        echo -e "$GREEN Select format:$RESET"
         echo "  [1] MP4 (Widely compatible)"
         echo "  [2] MKV (High quality)"
         echo "  [3] MOV (Apple devices)"
@@ -482,17 +488,18 @@ main_menu() {
     while true; do
         display_logo
         display_menu "Main Menu"
-        echo -e "$YELLOW Choose an option:$RESET"
-        echo "  [1] Compress Video - Reduce file size"
-        echo "  [2] Convert Format - Change video type"
-        echo "  [3] Add Watermark - Customize videos"
-        echo "  [4] Change Output Directory - Set save location"
-        echo "  [5] View Logs - Check tool activity"
-        echo "  [6] System Cleaner - Free up space"
-        echo "  [7] Check for Updates - (Optional)"
-        echo "  [8] Help & Guide - Learn to use"
-        echo "  [9] Join Telegram - Connect with @JubairFF"
-        echo "  [0] Exit - Close tool"
+        echo -e "$BLUE┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓$RESET"
+        echo -e "$GREEN┃ [1] Compress Video - [÷] $RESET"
+        echo -e "$MAGENTA┃ [2] Convert Format - [÷] $RESET"
+        echo -e "$YELLOW┃ [3] Add Watermark - [÷] $RESET"
+        echo -e "$CYAN┃ [4] Change Output Directory - [÷] $RESET"
+        echo -e "$BLUE┃ [5] View Logs - [÷] $RESET"
+        echo -e "$GREEN┃ [6] System Cleaner - [÷] $RESET"
+        echo -e "$MAGENTA┃ [7] Check for Updates - (Optional) $RESET"
+        echo -e "$YELLOW┃ [8] Help & Guide - [more] $RESET"
+        echo -e "$CYAN┃ [9] Join Telegram Channel - [+] $RESET"
+        echo -e "$BLUE┃ [0] Exit - Close tool $RESET"
+        echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
         read -p "$CYAN Select [0-9]: $RESET" choice
         case $choice in
             1) compression_menu ;;
