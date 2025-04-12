@@ -4,7 +4,7 @@
 # Version: 2.4
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
-# Description: Open source tool with colorful UI, boxed menu, and error handling
+# Description: Open source tool with boxed menus, colored names, internet check, and error handling
 
 # Initialize variables
 VERSION="2.4"
@@ -23,7 +23,7 @@ mkdir -p "$BASE_DIR" "$LOG_DIR" "$OUTPUT_DIR" 2>/dev/null || { echo -e "\033[1;3
 
 # Color definitions
 COLORS=('\033[1;34m' '\033[1;32m' '\033[1;33m' '\033[1;35m' '\033[1;36m') # Blue, Green, Yellow, Magenta, Cyan
-RED='\033[1;31m'
+RED='\033[1;31m' # Only for errors
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
@@ -36,10 +36,20 @@ get_random_color() {
     echo "${COLORS[$RANDOM % ${#COLORS[@]}]}"
 }
 
-# Display dual logos with separator
+# Check internet connectivity
+check_internet() {
+    if ping -c 1 google.com >/dev/null 2>&1; then
+        return 0
+    else
+        echo -e "$RED Error: No internet connection! Check your network.$RESET"
+        return 1
+    fi
+}
+
+# Display dual ASCII logos with separator
 display_logo() {
     clear
-    local color=$CYAN # Cyan logo instead of red
+    local color=$CYAN # Cyan logo
     echo -e "$color"
     echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
     echo "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
@@ -49,13 +59,13 @@ display_logo() {
     echo "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝"
     echo "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
     echo "┠──────────────────────────────────────┨"
-    echo "┃   $TOOL_NAME v$VERSION   "
-    echo "┃   Developed by $AUTHOR   "
-    echo "┃   Telegram: @JubairFF    "
+    echo "┃   $TOOL_NAME v$VERSION   ┃"
+    echo "┃   Developed by $AUTHOR   ┃"
+    echo "┃   Telegram: @JubairFF    ┃"
     echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$RESET"
     echo -e "$color┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓$RESET"
-    echo -e "$color┃          Tool Loaded!          $RESET"
+    echo -e "$color┃          Tool Loaded!          ┃$RESET"
     echo -e "$color┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
     local spinner=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
     for i in {1..10}; do
@@ -72,7 +82,7 @@ display_menu() {
     local color=$(get_random_color)
     echo -e "$color"
     echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-    echo "┃         $title         "
+    echo "┃         $title         ┃"
     echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$RESET"
 }
@@ -113,7 +123,7 @@ validate_file() {
 # Join Telegram with error handling
 join_telegram() {
     display_menu "Join Telegram Community"
-    echo -e "$MAGENTA Connect with $AUTHOR on Telegram: $CYAN@JubairFF$RESET"
+    echo -e "$MAGENTA Connect with $GREEN$AUTHOR$RESET on Telegram: $CYAN@JubairFF$RESET"
     echo -e "$MAGENTA Get updates, support, and more!$RESET"
     read -p "$CYAN Join now? [y/N]: $RESET" choice
     if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
@@ -132,9 +142,14 @@ join_telegram() {
     read -p "$CYAN Press ENTER to return...$RESET"
 }
 
-# Check update (optional)
+# Check update (optional) with internet check
 check_update() {
     display_menu "Check for Updates"
+    if ! check_internet; then
+        echo -e "$RED Update check skipped: No internet.$RESET"
+        read -p "$CYAN Press ENTER to return...$RESET"
+        return
+    fi
     echo -e "$YELLOW Check for new version? (Optional)$RESET"
     read -p "$CYAN Proceed? [y/N]: $RESET" choice
     if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
@@ -224,7 +239,7 @@ clean_system() {
 # Show help
 show_help() {
     display_menu "Help & Guide"
-    echo -e "$BLUE Welcome to $TOOL_NAME v$VERSION by $AUTHOR$RESET"
+    echo -e "$BLUE Welcome to $GREEN$TOOL_NAME $BLUEv$VERSION $BLUEby $MAGENTA$AUTHOR$RESET"
     echo -e "$CYAN Features:$RESET"
     echo "  - Video Compression: 5 quality levels"
     echo "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
@@ -246,7 +261,7 @@ show_help() {
 
 # Change output directory
 change_output_dir() {
-    display_menu "Output Directory"
+    display_menu "Change Output Directory"
     echo -e "$YELLOW Current path: $CYAN$OUTPUT_DIR$RESET"
     echo -e "$YELLOW Enter new path (press ENTER to keep):$RESET"
     read -p "$CYAN Path: $RESET" new_path
@@ -414,8 +429,8 @@ convert_video() {
 # Compression menu
 compression_menu() {
     while true; do
-        display_menu "Video Compression"
-        echo -e "$BLUE Select quality level:$RESET"
+        display_menu "Compress Video"
+        echo -e "$GREEN Select quality level:$RESET"
         echo "  [1] Ultra Low (Smallest size)"
         echo "  [2] Low (Good quality, smaller)"
         echo "  [3] Medium (Balanced)"
@@ -440,7 +455,7 @@ compression_menu() {
 watermark_menu() {
     while true; do
         display_menu "Add Watermark"
-        echo -e "$MAGENTA Select option:$RESET"
+        echo -e "$YELLOW Select option:$RESET"
         echo "  [1] Add text watermark"
         echo "  [0] Return to main menu"
         read -p "$CYAN Select [0-1]: $RESET" choice
@@ -462,7 +477,7 @@ watermark_menu() {
 conversion_menu() {
     while true; do
         display_menu "Convert Format"
-        echo -e "$GREEN Select format:$RESET"
+        echo -e "$MAGENTA Select format:$RESET"
         echo "  [1] MP4 (Widely compatible)"
         echo "  [2] MKV (High quality)"
         echo "  [3] MOV (Apple devices)"
@@ -489,16 +504,16 @@ main_menu() {
         display_logo
         display_menu "Main Menu"
         echo -e "$BLUE┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓$RESET"
-        echo -e "$GREEN┃ [1] Compress Video - [÷] $RESET"
-        echo -e "$MAGENTA┃ [2] Convert Format - [÷] $RESET"
-        echo -e "$YELLOW┃ [3] Add Watermark - [÷] $RESET"
-        echo -e "$CYAN┃ [4] Change Output Directory - [÷] $RESET"
-        echo -e "$BLUE┃ [5] View Logs - [÷] $RESET"
-        echo -e "$GREEN┃ [6] System Cleaner - [÷] $RESET"
-        echo -e "$MAGENTA┃ [7] Check for Updates - (Optional) $RESET"
-        echo -e "$YELLOW┃ [8] Help & Guide - [more] $RESET"
-        echo -e "$CYAN┃ [9] Join Telegram Channel - [+] $RESET"
-        echo -e "$BLUE┃ [0] Exit - Close tool $RESET"
+        echo -e "$GREEN┃ [1] $GREEN Compress Video$RESET                ┃"
+        echo -e "$MAGENTA┃ [2] $MAGENTA Convert Format$RESET            ┃"
+        echo -e "$YELLOW┃ [3] $YELLOW Add Watermark$RESET               ┃"
+        echo -e "$CYAN┃ [4] $CYAN Change Output Directory$RESET         ┃"
+        echo -e "$BLUE┃ [5] $BLUE View Logs$RESET                       ┃"
+        echo -e "$GREEN┃ [6] $GREEN System Cleaner$RESET                ┃"
+        echo -e "$MAGENTA┃ [7] $MAGENTA Check for Updates$RESET         ┃"
+        echo -e "$YELLOW┃ [8] $YELLOW Help & Guide$RESET                ┃"
+        echo -e "$CYAN┃ [9] $CYAN Join Telegram Community$RESET         ┃"
+        echo -e "$BLUE┃ [0] $BLUE Exit$RESET                           ┃"
         echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
         read -p "$CYAN Select [0-9]: $RESET" choice
         case $choice in
