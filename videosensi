@@ -51,12 +51,11 @@ display_logo() {
     clear
     local color=$CYAN # Cyan logo
     echo -e "$color"
-    echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
     echo "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
-    echo "┃ ██   ██████╔══██╗██╔════╝██╔═══██╗"
-    echo "┃ ██   ██████  ███████╗  ██   ██"
-    echo "┃ ╚██╗ ██╔╝████  ████╔══╝  ██   ██"
-    echo "┃  ╚████╔╝ ████████╔╝███████╗╚██████╔╝"
+    echo "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗"
+    echo "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║"
+    echo "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║"
+    echo "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝"
     echo "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
     echo "┠──────────────────────────────────────┨"
     echo "┃   $TOOL_NAME v$VERSION   "
@@ -454,7 +453,7 @@ compression_menu() {
         echo -e "$GREEN┃ [4] High (Better quality)        "
         echo -e "$GREEN┃ [5] Ultra High (Best quality)    "
         echo -e "$GREEN┃ [0] Return to main menu          "
-        echo -e "$GREEN┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$GREEN┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
         read -p "$CYAN Select [0-5]: $RESET" choice
         case $choice in
             1|2|3|4|5)
@@ -477,7 +476,7 @@ watermark_menu() {
         echo -e "$YELLOW┃ Select option:                    "
         echo -e "$YELLOW┃ [1] Add text watermark            "
         echo -e "$YELLOW┃ [0] Return to main menu           "
-        echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
         read -p "$GREEN Select [0-1]: $RESET" choice
         case $choice in
             1)
@@ -505,7 +504,7 @@ conversion_menu() {
         echo -e "$MAGENTA┃ [4] WEBM (Web optimized)          "
         echo -e "$MAGENTA┃ [5] AVI (Legacy)                  "
         echo -e "$MAGENTA┃ [0] Return to main menu           "
-        echo -e "$MAGENTA┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$MAGENTA┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
         read -p "$CYAN Select [0-5]: $RESET" choice
         case $choice in
             1|2|3|4|5)
@@ -536,7 +535,7 @@ main_menu() {
         echo -e "$YELLOW┃ [8] $YELLOW Help & Guide$RESET                "
         echo -e "$CYAN┃ [9] $CYAN Join Telegram Community$RESET         "
         echo -e "$BLUE┃ [0] $BLUE Exit$RESET                           "
-        echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
         read -p "$CYAN Select [0-9]: $RESET" choice
         case $choice in
             1) compression_menu ;;
