@@ -308,7 +308,7 @@ get_output_file() {
     echo "$output"
 }
 
-# Display processing with fast typing effect
+# Display processing with fast typing effect (removed "Done!")
 display_processing() {
     local message="$1"
     local dots=""
@@ -317,24 +317,25 @@ display_processing() {
         dots="$dots."
         sleep 0.05 # Fast typing effect
     done
-    echo -en "\r$GREEN Done!               $RESET\n"
+    echo -en "\r$YELLOW $message...$RESET\n"  # Just show the message, no "Done!"
 }
 
-# Display progress bar
-display_progress_bar() {
-    local max_progress="$1"
-    local pid="$2"
-    local progress=0
+# Display spinner animation
+display_spinner() {
+    local pid="$1"
+    local message="$2"
+    local spinner=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
     while kill -0 "$pid" 2>/dev/null; do
-        sleep 0.5
-        progress=$((progress + 1))
-        if [ "$progress" -gt "$max_progress" ]; then progress="$max_progress"; fi
-        printf "\r%-70s\033[0K$YELLOW Progress: [%-50s]$RESET" "" "$(printf '=%.0s' $(seq 1 $((progress*50/max_progress))))"
+        for i in "${spinner[@]}"; do
+            echo -en "\r$YELLOW $message $i$RESET"
+            sleep 0.1
+            kill -0 "$pid" 2>/dev/null || break 2
+        done
     done
-    printf "\r%-70s\033[0K$RESET\n" ""  # Clear line and move to new line
+    echo -en "\r$GREEN Completed!               $RESET\n"
 }
 
-# Compress video with progress bar and typing effect
+# Compress video with spinner animation
 compress_video() {
     local input="$1"
     local quality="$2"
@@ -355,9 +356,7 @@ compress_video() {
     display_processing "Processing"
     (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
-    duration=$(printf "%.0f" "$duration")  # Convert float to integer
-    display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
+    display_spinner "$pid" "Processing"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
@@ -370,7 +369,7 @@ compress_video() {
     fi
 }
 
-# Add watermark with progress bar and typing effect
+# Add watermark with spinner animation
 add_watermark() {
     local input="$1"
     local text="$2"
@@ -388,9 +387,7 @@ add_watermark() {
     display_processing "Processing"
     (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
-    duration=$(printf "%.0f" "$duration")  # Convert float to integer
-    display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
+    display_spinner "$pid" "Processing"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
@@ -403,7 +400,7 @@ add_watermark() {
     fi
 }
 
-# Convert video with progress bar and typing effect
+# Convert video with spinner animation
 convert_video() {
     local input="$1"
     local format="$2"
@@ -424,9 +421,7 @@ convert_video() {
     display_processing "Processing"
     (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    local duration=$(ffprobe -v error -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 60)
-    duration=$(printf "%.0f" "$duration")  # Convert float to integer
-    display_progress_bar $((duration * 2)) "$pid"  # Adjust max progress based on duration
+    display_spinner "$pid" "Processing"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
