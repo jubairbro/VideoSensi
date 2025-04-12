@@ -14,6 +14,7 @@ CONFIG_DIR="$HOME/.videosensi"
 LOG_DIR="$CONFIG_DIR/logs"
 OUTPUT_DIR="/sdcard/VideoSensi"
 LOG_FILE="$LOG_DIR/operation_$(date +%Y%m%d).log"
+FFMPEG_LOG="$LOG_DIR/ffmpeg_error.log"
 GITHUB_REPO="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
 
 # Initialize directories
@@ -303,7 +304,9 @@ compress_video() {
     esac
     echo -e "${YELLOW}Compressing video (Quality Level $quality)...${NC}"
     local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" > /tmp/ffmpeg_error.log 2>&1) &
+    # Clear previous ffmpeg log
+    rm -f "$FFMPEG_LOG" 2>/dev/null
+    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" > "$FFMPEG_LOG" 2>&1) &
     local pid=$!
     local i=0
     while kill -0 $pid 2>/dev/null; do
@@ -315,12 +318,18 @@ compress_video() {
     if [ -f "$output" ]; then
         echo -e "\r${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
         log_operation "Compression" "Success" "Quality:$quality Output:$output"
+        rm -f "$FFMPEG_LOG" 2>/dev/null
         return 0
     else
         echo -e "\r${RED}Compression failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
-        cat /tmp/ffmpeg_error.log
-        log_operation "Compression" "Failed" "Quality:$quality Input:$input Error:$(cat /tmp/ffmpeg_error.log)"
+        if [ -f "$FFMPEG_LOG" ]; then
+            cat "$FFMPEG_LOG"
+            log_operation "Compression" "Failed" "Quality:$quality Input:$input Error:$(cat "$FFMPEG_LOG")"
+        else
+            echo -e "${RED}No error log available! Check ffmpeg installation or permissions at $LOG_DIR${NC}"
+            log_operation "Compression" "Failed" "Quality:$quality Input:$input Error:No log file"
+        fi
         return 1
     fi
 }
@@ -341,7 +350,9 @@ add_watermark() {
     local output=$(generate_output_name "$input" "watermarked")
     echo -e "${YELLOW}Adding watermark to video...${NC}"
     local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-    (ffmpeg -i "$input" -vf "drawtext=text='$watermark_text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" > /tmp/ffmpeg_error.log 2>&1) &
+    # Clear previous ffmpeg log
+    rm -f "$FFMPEG_LOG" 2>/dev/null
+    (ffmpeg -i "$input" -vf "drawtext=text='$watermark_text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" > "$FFMPEG_LOG" 2>&1) &
     local pid=$!
     local i=0
     while kill -0 $pid 2>/dev/null; do
@@ -353,12 +364,18 @@ add_watermark() {
     if [ -f "$output" ]; then
         echo -e "\r${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
         log_operation "Watermark" "Success" "Text:'$watermark_text' Output:$output"
+        rm -f "$FFMPEG_LOG" 2>/dev/null
         return 0
     else
         echo -e "\r${RED}Watermarking failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
-        cat /tmp/ffmpeg_error.log
-        log_operation "Watermark" "Failed" "Text:'$watermark_text' Input:$input Error:$(cat /tmp/ffmpeg_error.log)"
+        if [ -f "$FFMPEG_LOG" ]; then
+            cat "$FFMPEG_LOG"
+            log_operation "Watermark" "Failed" "Text:'$watermark_text' Input:$input Error:$(cat "$FFMPEG_LOG")"
+        else
+            echo -e "${RED}No error log available! Check ffmpeg installation or permissions at $LOG_DIR${NC}"
+            log_operation "Watermark" "Failed" "Text:'$watermark_text' Input:$input Error:No log file"
+        fi
         return 1
     fi
 }
@@ -397,7 +414,9 @@ convert_video() {
     esac
     echo -e "${YELLOW}Converting to $ext format...${NC}"
     local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" > /tmp/ffmpeg_error.log 2>&1) &
+    # Clear previous ffmpeg log
+    rm -f "$FFMPEG_LOG" 2>/dev/null
+    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" > "$FFMPEG_LOG" 2>&1) &
     local pid=$!
     local i=0
     while kill -0 $pid 2>/dev/null; do
@@ -409,12 +428,18 @@ convert_video() {
     if [ -f "$output" ]; then
         echo -e "\r${GREEN}Success! Output saved to: ${CYAN}$output${NC}"
         log_operation "Conversion" "Success" "Format:$ext Output:$output"
+        rm -f "$FFMPEG_LOG" 2>/dev/null
         return 0
     else
         echo -e "\r${RED}Conversion failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
-        cat /tmp/ffmpeg_error.log
-        log_operation "Conversion" "Failed" "Format:$ext Input:$input Error:$(cat /tmp/ffmpeg_error.log)"
+        if [ -f "$FFMPEG_LOG" ]; then
+            cat "$FFMPEG_LOG"
+            log_operation "Conversion" "Failed" "Format:$ext Input:$input Error:$(cat "$FFMPEG_LOG")"
+        else
+            echo -e "${RED}No error log available! Check ffmpeg installation or permissions at $LOG_DIR${NC}"
+            log_operation "Conversion" "Failed" "Format:$ext Input:$input Error:No log file"
+        fi
         return 1
     fi
 }
