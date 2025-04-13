@@ -657,4 +657,5 @@ main_menu() {
 
 # Start the tool
 check_dependencies
+display_logo
 main_menu
