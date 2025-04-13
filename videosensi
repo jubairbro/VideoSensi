@@ -116,6 +116,23 @@ validate_file() {
     local file="$1"
     if [ -z "$file" ] || [ ! -e "$file" ] || [ ! -f "$file" ] || [ ! -r "$file" ]; then
         echo -e "$RED Error: Invalid or inaccessible file: $file$RESET"
+        log_operation "validate_file" "failed" "file:$file"
+        return 1
+    fi
+    # Check if the file is a valid video using ffprobe
+    if ! ffprobe -v error -show_streams "$file" >/dev/null 2>&1; then
+        echo -e "$RED Error: File is not a valid video or is corrupted: $file$RESET"
+        log_operation "validate_file" "failed" "invalid_video:$file"
+        return 1
+    fi
+    return 0
+}
+
+# Check output directory permissions
+check_output_dir() {
+    if [ ! -d "$OUTPUT_DIR" ] || [ ! -w "$OUTPUT_DIR" ]; then
+        echo -e "$RED Error: Output directory $OUTPUT_DIR is not writable. Run 'termux-setup-storage' or check permissions.$RESET"
+        log_operation "check_output_dir" "failed" "dir:$OUTPUT_DIR"
         return 1
     fi
     return 0
@@ -308,7 +325,7 @@ get_output_file() {
     echo "$output"
 }
 
-# Display processing with fast typing effect (removed "Done!")
+# Display processing with fast typing effect
 display_processing() {
     local message="$1"
     local dots=""
@@ -317,10 +334,10 @@ display_processing() {
         dots="$dots."
         sleep 0.05 # Fast typing effect
     done
-    echo -en "\r$YELLOW $message...$RESET\n"  # Just show the message, no "Done!"
+    echo -en "\r$YELLOW $message...$RESET\n"
 }
 
-# Display spinner animation
+# Display spinner animation with custom message
 display_spinner() {
     local pid="$1"
     local message="$2"
@@ -343,6 +360,9 @@ compress_video() {
         log_operation "compress" "failed" "input:$input"
         return 1
     fi
+    if ! check_output_dir; then
+        return 1
+    fi
     local output=$(get_output_file "$input" "compressed")
     local crf preset
     case $quality in
@@ -353,17 +373,21 @@ compress_video() {
         5) crf=16; preset="veryslow" ;;
     esac
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
-    display_processing "Processing"
-    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
+    display_processing "Starting compression"
+    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p -c:a aac "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Processing"
+    display_spinner "$pid" "Compressing"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "compress" "success" "level:$quality output:$output"
         return 0
     else
-        echo -e "$RED Compression failed! Check input or ffmpeg.$RESET"
+        echo -e "$RED Compression failed! Details in log: $CYAN$ERROR_LOG$RESET"
+        echo -e "$YELLOW Last error: $RESET"
+        tail -n 5 "$ERROR_LOG" | while read -r line; do
+            echo -e "$YELLOW $line$RESET"
+        done
         log_operation "compress" "failed" "level:$quality input:$input"
         return 1
     fi
@@ -377,6 +401,9 @@ add_watermark() {
         log_operation "watermark" "failed" "input:$input"
         return 1
     fi
+    if ! check_output_dir; then
+        return 1
+    fi
     if [ -z "$text" ]; then
         echo -e "$RED Error: Watermark text required!$RESET"
         log_operation "watermark" "failed" "no_text"
@@ -384,17 +411,21 @@ add_watermark() {
     fi
     local output=$(get_output_file "$input" "watermarked")
     echo -e "$YELLOW Adding watermark...$RESET"
-    display_processing "Processing"
+    display_processing "Starting watermark"
     (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Processing"
+    display_spinner "$pid" "Watermarking"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "watermark" "success" "text:'$text' output:$output"
         return 0
     else
-        echo -e "$RED Watermark failed! Check input or ffmpeg.$RESET"
+        echo -e "$RED Watermark failed! Details in log: $CYAN$ERROR_LOG$RESET"
+        echo -e "$YELLOW Last error: $RESET"
+        tail -n 5 "$ERROR_LOG" | while read -r line; do
+            echo -e "$YELLOW $line$RESET"
+        done
         log_operation "watermark" "failed" "text:'$text' input:$input"
         return 1
     fi
@@ -408,6 +439,9 @@ convert_video() {
         log_operation "convert" "failed" "input:$input"
         return 1
     fi
+    if ! check_output_dir; then
+        return 1
+    fi
     local output=$(get_output_file "$input" "converted")
     local codec ext
     case $format in
@@ -417,18 +451,23 @@ convert_video() {
         4) codec="libvpx-vp9"; ext="webm" ;;
         5) codec="mpeg4"; ext="avi" ;;
     esac
+    output="${output%.*}.$ext"  # Ensure correct extension for output
     echo -e "$YELLOW Converting to $ext...$RESET"
-    display_processing "Processing"
-    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG") &
+    display_processing "Starting conversion"
+    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p -c:a aac "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Processing"
+    display_spinner "$pid" "Converting"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "convert" "success" "format:$ext output:$output"
         return 0
     else
-        echo -e "$RED Conversion failed! Check input or ffmpeg.$RESET"
+        echo -e "$RED Conversion failed! Details in log: $CYAN$ERROR_LOG$RESET"
+        echo -e "$YELLOW Last error: $RESET"
+        tail -n 5 "$ERROR_LOG" | while read -r line; do
+            echo -e "$YELLOW $line$RESET"
+        done
         log_operation "convert" "failed" "format:$ext input:$input"
         return 1
     fi
@@ -528,7 +567,6 @@ conversion_menu() {
 # Main menu
 main_menu() {
     while true; do
-        display_logo
         display_menu "Main Menu"
         echo -e "$BLUE┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
         echo -e "$GREEN┃ [1] $GREEN Compress Video$RESET                "
