@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # VideoSensi Pro - A video processing tool by Jubair bro
-# Version: 2.9
+# Version: 3.0
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
 # Description: Open source tool with fast typing loading and error handling
 
 # Initialize variables
-VERSION="2.9"
+VERSION="3.0"
 AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
@@ -364,7 +364,7 @@ display_spinner() {
     echo -en "\r$GREEN Completed!               $RESET\n"
 }
 
-# Compress video with spinner animation and enhanced fallback system
+# Compress video with spinner animation and simplified fallback system
 compress_video() {
     local input="$1"
     local quality="$2"
@@ -382,7 +382,7 @@ compress_video() {
         echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close other apps for better performance.$RESET"
     fi
 
-    # Pre-process: Convert to a standard format (H.264 + AAC) to ensure compatibility
+    # Pre-process: Copy the video without changing format
     local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
     # Ensure BASE_DIR is writable
     if [ ! -w "$BASE_DIR" ]; then
@@ -390,15 +390,19 @@ compress_video() {
         log_operation "compress" "failed" "temp_dir_not_writable:$BASE_DIR"
         return 1
     fi
-    echo -e "$YELLOW Pre-processing: Standardizing video format...$RESET"
-    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v libx264 -c:a aac "$temp_input" 2>>"$ERROR_LOG") &
+    echo -e "$YELLOW Pre-processing: Preparing video...$RESET"
+    (ffmpeg -i "$input" -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Pre-processing (Standardizing Format)"
+    display_spinner "$pid" "Pre-processing (Copying Video)"
     wait "$pid"
     if [ $? -ne 0 ]; then
         echo -e "$RED Pre-processing failed! File may be corrupted or unsupported. Details in log: $CYAN$ERROR_LOG$RESET"
+        echo -e "$YELLOW Last error: $RESET"
+        tail -n 5 "$ERROR_LOG" | while read -r line; do
+            echo -e "$YELLOW $line$RESET"
+        done
         rm -f "$temp_input" 2>/dev/null
-        log_operation "compress" "failed" "preprocess_standardize input:$input"
+        log_operation "compress" "failed" "preprocess_copy input:$input"
         return 1
     fi
 
@@ -414,8 +418,8 @@ compress_video() {
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
     display_processing "Starting compression"
 
-    # Method 1: H.264 with AAC
-    (ffmpeg -threads 1 -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -c:a aac "$output" 2>>"$ERROR_LOG") &
+    # Method 1: H.264 with AAC (minimal options)
+    (ffmpeg -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -c:a aac "$output" 2>>"$ERROR_LOG") &
     pid=$!
     display_spinner "$pid" "Compressing (Attempt 1: H.264 with AAC)"
     wait "$pid"
@@ -428,9 +432,9 @@ compress_video() {
         echo -e "$YELLOW First attempt failed, trying fallback method...$RESET"
         log_operation "compress" "failed" "level:$quality method:1 input:$input"
 
-        # Method 2: H.265 with MP3
+        # Method 2: H.265 with MP3 (minimal options)
         output=$(get_output_file "$input" "compressed_fallback1")
-        (ffmpeg -threads 1 -i "$temp_input" -c:v libx265 -crf "$crf" -preset "$preset" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
+        (ffmpeg -i "$temp_input" -c:v libx265 -crf "$crf" -preset "$preset" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
         pid=$!
         display_spinner "$pid" "Compressing (Attempt 2: H.265 with MP3)"
         wait "$pid"
@@ -443,9 +447,9 @@ compress_video() {
             echo -e "$YELLOW Fallback 1 failed, trying next fallback...$RESET"
             log_operation "compress" "failed" "level:$quality method:2 input:$input"
 
-            # Method 3: H.264 without audio
+            # Method 3: H.264 without audio (minimal options)
             output=$(get_output_file "$input" "compressed_fallback2")
-            (ffmpeg -threads 1 -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -an "$output" 2>>"$ERROR_LOG") &
+            (ffmpeg -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -an "$output" 2>>"$ERROR_LOG") &
             pid=$!
             display_spinner "$pid" "Compressing (Attempt 3: H.264 without audio)"
             wait "$pid"
@@ -460,7 +464,7 @@ compress_video() {
 
                 # Method 4: Simple copy mode (last resort)
                 output=$(get_output_file "$input" "compressed_fallback3")
-                (ffmpeg -threads 1 -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
+                (ffmpeg -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
                 pid=$!
                 display_spinner "$pid" "Compressing (Attempt 4: Simple copy)"
                 wait "$pid"
@@ -556,7 +560,7 @@ add_watermark() {
     display_processing "Starting watermark"
 
     # First attempt: Default drawtext with box
-    (ffmpeg -threads 1 -i "$input" -vf "drawtext=text='$text':$position:fontsize=$fontsize:fontcolor=$fontcolor:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
+    (ffmpeg -i "$input" -vf "drawtext=text='$text':$position:fontsize=$fontsize:fontcolor=$fontcolor:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
     display_spinner "$pid" "Watermarking (Attempt 1: Drawtext)"
     wait "$pid"
@@ -572,7 +576,7 @@ add_watermark() {
         local temp_img="$BASE_DIR/watermark_$$.png"
         convert -size 100x50 xc:none -fill "$fontcolor" -draw "text 10,40 '$text'" "$temp_img" 2>>"$ERROR_LOG"
         output=$(get_output_file "$input" "watermarked_fallback")
-        (ffmpeg -threads 1 -i "$input" -i "$temp_img" -filter_complex "overlay=$position" -codec:a copy "$output" 2>>"$ERROR_LOG") &
+        (ffmpeg -i "$input" -i "$temp_img" -filter_complex "overlay=$position" -codec:a copy "$output" 2>>"$ERROR_LOG") &
         pid=$!
         display_spinner "$pid" "Watermarking (Attempt 2: Overlay)"
         wait "$pid"
@@ -593,7 +597,7 @@ add_watermark() {
     fi
 }
 
-# Convert video with spinner animation and enhanced fallback system
+# Convert video with spinner animation and simplified fallback system
 convert_video() {
     local input="$1"
     local format="$2"
@@ -611,7 +615,7 @@ convert_video() {
         echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close other apps for better performance.$RESET"
     fi
 
-    # Pre-process: Convert to a standard format (H.264 + AAC) to ensure compatibility
+    # Pre-process: Copy the video without changing format
     local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
     # Ensure BASE_DIR is writable
     if [ ! -w "$BASE_DIR" ]; then
@@ -619,15 +623,19 @@ convert_video() {
         log_operation "convert" "failed" "temp_dir_not_writable:$BASE_DIR"
         return 1
     fi
-    echo -e "$YELLOW Pre-processing: Standardizing video format...$RESET"
-    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v libx264 -c:a aac "$temp_input" 2>>"$ERROR_LOG") &
+    echo -e "$YELLOW Pre-processing: Preparing video...$RESET"
+    (ffmpeg -i "$input" -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Pre-processing (Standardizing Format)"
+    display_spinner "$pid" "Pre-processing (Copying Video)"
     wait "$pid"
     if [ $? -ne 0 ]; then
         echo -e "$RED Pre-processing failed! File may be corrupted or unsupported. Details in log: $CYAN$ERROR_LOG$RESET"
+        echo -e "$YELLOW Last error: $RESET"
+        tail -n 5 "$ERROR_LOG" | while read -r line; do
+            echo -e "$YELLOW $line$RESET"
+        done
         rm -f "$temp_input" 2>/dev/null
-        log_operation "convert" "failed" "preprocess_standardize input:$input"
+        log_operation "convert" "failed" "preprocess_copy input:$input"
         return 1
     fi
 
@@ -644,8 +652,8 @@ convert_video() {
     echo -e "$YELLOW Converting to $ext...$RESET"
     display_processing "Starting conversion"
 
-    # Method 1: Default conversion with AAC audio
-    (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -c:a aac "$output" 2>>"$ERROR_LOG") &
+    # Method 1: Default conversion with AAC audio (minimal options)
+    (ffmpeg -i "$temp_input" -c:v "$codec" -c:a aac "$output" 2>>"$ERROR_LOG") &
     pid=$!
     display_spinner "$pid" "Converting (Attempt 1: $ext with AAC)"
     wait "$pid"
@@ -658,10 +666,10 @@ convert_video() {
         echo -e "$YELLOW First attempt failed, trying fallback method...$RESET"
         log_operation "convert" "failed" "format:$ext method:1 input:$input"
 
-        # Method 2: Alternative audio codec (MP3)
+        # Method 2: Alternative audio codec (MP3) (minimal options)
         output=$(get_output_file "$input" "converted_fallback1")
         output="${output%.*}.$ext"
-        (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
+        (ffmpeg -i "$temp_input" -c:v "$codec" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
         pid=$!
         display_spinner "$pid" "Converting (Attempt 2: $ext with MP3)"
         wait "$pid"
@@ -674,10 +682,10 @@ convert_video() {
             echo -e "$YELLOW Fallback 1 failed, trying next fallback...$RESET"
             log_operation "convert" "failed" "format:$ext method:2 input:$input"
 
-            # Method 3: Without audio
+            # Method 3: Without audio (minimal options)
             output=$(get_output_file "$input" "converted_fallback2")
             output="${output%.*}.$ext"
-            (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -an "$output" 2>>"$ERROR_LOG") &
+            (ffmpeg -i "$temp_input" -c:v "$codec" -an "$output" 2>>"$ERROR_LOG") &
             pid=$!
             display_spinner "$pid" "Converting (Attempt 3: $ext without audio)"
             wait "$pid"
@@ -693,7 +701,7 @@ convert_video() {
                 # Method 4: Simple copy mode (last resort)
                 output=$(get_output_file "$input" "converted_fallback3")
                 output="${output%.*}.$ext"
-                (ffmpeg -threads 1 -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
+                (ffmpeg -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
                 pid=$!
                 display_spinner "$pid" "Converting (Attempt 4: Simple copy)"
                 wait "$pid"
