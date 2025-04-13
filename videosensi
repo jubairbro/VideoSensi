@@ -1,29 +1,30 @@
 #!/bin/bash
 
-# VideoSensi Pro - A video processing tool by Jubair bro
-# Version: 2.4
+# VideoSensi Pro - A video processing tool by Jubair Bro
+# Version: 3.2
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
-# Description: Open source tool with fast typing loading and error handling
+# Description: Ultimate tool for video compression, conversion, and watermarking
 
 # Initialize variables
-VERSION="2.4"
-AUTHOR="Jubair bro"
+VERSION="3.2"
+AUTHOR="Jubair Bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
-LOG_DIR="$HOME/.logs"  # Hidden log directory in home
-OUTPUT_DIR="/sdcard/VideoSensi"  # Reverted to original output directory
+LOG_DIR="$HOME/.logs"
+OUTPUT_DIR="/sdcard/VideoSensi"
 OP_LOG="$LOG_DIR/operation_$(date +%Y%m%d).log"
 ERROR_LOG="$LOG_DIR/ffmpeg_error.log"
 UPDATE_URL="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
 TELEGRAM_LINK="https://t.me/JubairFF"
+PROGRESS_FILE="$BASE_DIR/progress"
 
 # Create necessary directories
-mkdir -p "$BASE_DIR" "$LOG_DIR" "$OUTPUT_DIR" 2>/dev/null || { echo -e "\033[1;31mError: Failed to create directories! Check permissions.\033[0m"; exit 1; }
+mkdir -p "$BASE_DIR" "$LOG_DIR" "$OUTPUT_DIR" 2>>"$ERROR_LOG" || { echo -e "$RED Error: Failed to create directories! Check permissions.$RESET"; exit 1; }
 
 # Color definitions
-COLORS=('\033[1;34m' '\033[1;32m' '\033[1;33m' '\033[1;35m' '\033[1;36m') # Blue, Green, Yellow, Magenta, Cyan
-RED='\033[1;31m' # Only for errors
+COLORS=('\033[1;34m' '\033[1;32m' '\033[1;33m' '\033[1;35m' '\033[1;36m')
+RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
@@ -31,25 +32,15 @@ MAGENTA='\033[1;35m'
 CYAN='\033[1;36m'
 RESET='\033[0m'
 
-# Get random color (excluding red for UI)
+# Get random color
 get_random_color() {
     echo "${COLORS[$RANDOM % ${#COLORS[@]}]}"
 }
 
-# Check internet connectivity
-check_internet() {
-    if ping -c 1 google.com >/dev/null 2>&1; then
-        return 0
-    else
-        echo -e "$RED Error: No internet connection! Check your network.$RESET"
-        return 1
-    fi
-}
-
-# Display dual ASCII logos with separator
+# Display logo
 display_logo() {
     clear
-    local color=$CYAN # Cyan logo
+    local color=$CYAN
     echo -e "$color"
     echo -e "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
     echo -e "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
@@ -60,7 +51,7 @@ display_logo() {
     echo -e "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
     echo -e "┠──────────────────────────────────────┨"
     echo -e "┃   $TOOL_NAME v$VERSION   "
-    echo -e "┃   Developed by $AUTHOR   "
+    echo -e "┃   Crafted by $AUTHOR   "
     echo -e "┃   Telegram: @JubairFF    "
     echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$color┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
@@ -70,13 +61,13 @@ display_logo() {
     local spinner=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
     for i in {1..10}; do
         echo -en "\r$YELLOW Loading... ${spinner[$((i % 10))]}$RESET"
-        sleep 0.1 # Faster loading
+        sleep 0.1
     done
     echo -e "\r$GREEN Tool loaded successfully!$RESET"
     sleep 0.5
 }
 
-# Display menu box with colorful options
+# Display menu
 display_menu() {
     local title="$1"
     local color=$(get_random_color)
@@ -92,241 +83,89 @@ log_operation() {
     local action="$1"
     local status="$2"
     local details="$3"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $action | $status | $details" >> "$OP_LOG" 2>/dev/null
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $action | $status | $details" >> "$OP_LOG" 2>>"$ERROR_LOG"
 }
 
-# Check dependencies with fallback
+# Check dependencies
 check_dependencies() {
     local deps=("ffmpeg" "curl" "git" "ffprobe")
     for dep in "${deps[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
             echo -e "$YELLOW Warning: $dep missing. Attempting install...$RESET"
-            if ! pkg install -y "$dep" 2>/dev/null; then
+            if ! pkg install -y "$dep" 2>>"$ERROR_LOG"; then
                 echo -e "$RED Error: Failed to install $dep. Install manually.$RESET"
                 exit 1
             fi
         fi
     done
+    if ! ffmpeg -encoders 2>>"$ERROR_LOG" | grep -q libx264; then
+        echo -e "$RED Warning: libx264 missing. Reinstalling FFmpeg...$RESET"
+        pkg install -y ffmpeg
+    fi
     echo -e "$GREEN Dependencies ready!$RESET"
 }
 
-# Validate file with robust check
+# Check memory
+check_memory() {
+    local free_mem=$(free -m | grep Mem | awk '{print $4}')
+    if [ "$free_mem" -lt 300 ]; then
+        echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close apps for better performance.$RESET"
+    fi
+}
+
+# Validate file
 validate_file() {
     local file="$1"
     if [ -z "$file" ] || [ ! -e "$file" ] || [ ! -f "$file" ] || [ ! -r "$file" ]; then
         echo -e "$RED Error: Invalid or inaccessible file: $file$RESET"
+        log_operation "validate_file" "failed" "file:$file"
+        return 1
+    fi
+    if ! ffprobe -v error -show_streams -show_format "$file" > "$BASE_DIR/video_info.txt" 2>>"$ERROR_LOG"; then
+        echo -e "$RED Warning: Could not analyze video: $file. File may be corrupted.$RESET"
+        log_operation "validate_file" "failed" "invalid_video:$file"
         return 1
     fi
     return 0
 }
 
-# Join Telegram with error handling
-join_telegram() {
-    display_menu "Join Telegram Community"
-    echo -e "$MAGENTA Connect with $GREEN$AUTHOR$RESET on Telegram: $CYAN@JubairFF$RESET"
-    echo -e "$MAGENTA Get updates, support, and more!$RESET"
-    echo -ne "$CYAN Join now? [y/N]: $RESET"
-    read choice
-    if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-        echo -e "$YELLOW Opening Telegram link...$RESET"
-        if am start -a android.intent.action.VIEW -d "$TELEGRAM_LINK" >/dev/null 2>&1; then
-            echo -e "$GREEN Successfully opened @JubairFF!$RESET"
-            log_operation "telegram_join" "success" "link:$TELEGRAM_LINK"
-        else
-            echo -e "$RED Error: Telegram not found or failed. Install Telegram.$RESET"
-            log_operation "telegram_join" "failed" "link:$TELEGRAM_LINK"
-        fi
-    else
-        echo -e "$YELLOW Skipped. Join later at $CYAN$TELEGRAM_LINK$RESET"
-        log_operation "telegram_join" "skipped" "user_choice"
-    fi
-    echo -ne "$CYAN Press ENTER to return...$RESET"
-    read
-}
-
-# Check update (optional) with internet check
-check_update() {
-    display_menu "Check for Updates"
-    if ! check_internet; then
-        echo -e "$RED Update check skipped: No internet.$RESET"
-        echo -ne "$CYAN Press ENTER to return...$RESET"
-        read
-        return
-    fi
-    echo -e "$YELLOW Check for new version? (Optional)$RESET"
-    echo -ne "$CYAN Proceed? [y/N]: $RESET"
-    read choice
-    if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-        echo -e "$YELLOW Checking for updates...$RESET"
-        local temp_file="/tmp/vs_temp"
-        if curl -s -o "$temp_file" "$UPDATE_URL"; then
-            local new_version=$(grep -m1 "VERSION=" "$temp_file" | cut -d'"' -f2)
-            if [ "$new_version" != "$VERSION" ]; then
-                echo -e "$GREEN New version $new_version available! Current: $VERSION$RESET"
-                echo -ne "$CYAN Update now? [y/N]: $RESET"
-                read confirm
-                if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-                    if cp "$temp_file" "$0" 2>/dev/null; then
-                        chmod +x "$0"
-                        echo -e "$GREEN Updated to v$new_version!$RESET"
-                        log_operation "update" "success" "version:$new_version"
-                        sleep 2
-                        exec "$0"
-                    else
-                        echo -e "$RED Update failed! Check permissions.$RESET"
-                        log_operation "update" "failed" "copy_error"
-                    fi
-                fi
-            else
-                echo -e "$GREEN You're on the latest version: $VERSION$RESET"
-            fi
-            rm -f "$temp_file"
-        else
-            echo -e "$RED Network error or update unavailable.$RESET"
-            log_operation "update" "failed" "network"
-        fi
-    else
-        echo -e "$YELLOW Update check skipped.$RESET"
-    fi
-    echo -ne "$CYAN Press ENTER to return...$RESET"
-    read
-}
-
-# View logs
-view_logs() {
-    display_menu "View Logs"
-    echo -e "$BLUE Recent tool activity:$RESET"
-    if [ -f "$OP_LOG" ]; then
-        tail -n 20 "$OP_LOG" | while read -r line; do
-            echo -e "$CYAN$line$RESET"
-        done
-    else
-        echo -e "$RED No logs found. Starting fresh!$RESET"
-    fi
-    echo -ne "$CYAN Press ENTER to return...$RESET"
-    read
-}
-
-# Clean system
-clean_system() {
-    display_menu "System Cleaner"
-    echo -e "$MAGENTA Choose cleaning option:$RESET"
-    echo -e "  [1] Remove logs older than 7 days"
-    echo -e "  [2] Clear output directory ($OUTPUT_DIR)"
-    echo -e "  [0] Return to main menu"
-    echo -ne "$CYAN Select [0-2]: $RESET"
-    read choice
-    case $choice in
-        1)
-            if find "$LOG_DIR" -type f -mtime +7 -exec rm -f {} + 2>/dev/null; then
-                echo -e "$GREEN Old logs removed successfully!$RESET"
-                log_operation "clean_logs" "success" "older_than_7d"
-            else
-                echo -e "$RED Failed to remove old logs. Check permissions.$RESET"
-                log_operation "clean_logs" "failed" "permission_error"
-            fi
-            ;;
-        2)
-            echo -ne "$CYAN Confirm clear output? [y/N]: $RESET"
-            read confirm
-            if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-                if find "$OUTPUT_DIR" -type f -exec rm -f {} + 2>/dev/null; then
-                    echo -e "$GREEN Output directory cleared!$RESET"
-                    log_operation "clean_output" "success" "dir:$OUTPUT_DIR"
-                else
-                    echo -e "$RED Failed to clear output. Check storage.$RESET"
-                    log_operation "clean_output" "failed" "storage_error"
-                fi
-            fi
-            ;;
-        0) return ;;
-        *) echo -e "$RED Invalid choice!$RESET" ;;
-    esac
-    echo -ne "$CYAN Press ENTER to return...$RESET"
-    read
-}
-
-# Show help
-show_help() {
-    display_menu "Help & Guide"
-    echo -e "$BLUE Welcome to $GREEN$TOOL_NAME $BLUEv$VERSION $BLUEby $MAGENTA$AUTHOR$RESET"
-    echo -e "$CYAN Features:$RESET"
-    echo -e "  - Video Compression: 5 quality levels"
-    echo -e "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
-    echo -e "  - Watermarking: Add custom text"
-    echo -e "  - Log Viewer: Track activities"
-    echo -e "  - System Cleaner: Free up space"
-    echo -e "  - Updates: Optional check"
-    echo -e "  - Community: Join @JubairFF"
-    echo -e "$CYAN Usage Tips:$RESET"
-    echo -e "  - Use /sdcard/... paths"
-    echo -e "  - Run 'termux-setup-storage'"
-    echo -e "  - Check logs with option 5"
-    echo -e "  - Join Telegram: @JubairFF"
-    echo -e "$CYAN Contact:$RESET"
-    echo -e "  Telegram: @JubairFF"
-    echo -e "  GitHub: github.com/jubairbro"
-    echo -ne "$CYAN Press ENTER to return...$RESET"
-    read
-}
-
-# Change output directory
-change_output_dir() {
-    display_menu "Change Output Directory"
-    echo -e "$YELLOW Current path: $CYAN$OUTPUT_DIR$RESET"
-    echo -e "$YELLOW Enter new path (press ENTER to keep):$RESET"
-    echo -ne "$CYAN Path: $RESET"
-    read new_path
-    if [ -n "$new_path" ]; then
-        new_path=$(echo "$new_path" | tr -d "'")
-        if mkdir -p "$new_path" 2>/dev/null && [ -w "$new_path" ]; then
-            OUTPUT_DIR="$new_path"
-            echo -e "$GREEN Set to: $CYAN$OUTPUT_DIR$RESET"
-            log_operation "change_dir" "success" "new:$OUTPUT_DIR"
-        else
-            echo -e "$RED Invalid path! Use /sdcard/...$RESET"
-            log_operation "change_dir" "failed" "invalid_path:$new_path"
+# Check output directory
+check_output_dir() {
+    if [ ! -d "$OUTPUT_DIR" ] || [ ! -w "$OUTPUT_DIR" ]; then
+        echo -e "$YELLOW Setting up storage...$RESET"
+        termux-setup-storage 2>>"$ERROR_LOG"
+        if [ ! -d "$OUTPUT_DIR" ] || [ ! -w "$OUTPUT_DIR" ]; then
+            echo -e "$RED Error: Output directory $OUTPUT_DIR is not writable. Check permissions.$RESET"
+            log_operation "check_output_dir" "failed" "dir:$OUTPUT_DIR"
+            return 1
         fi
     fi
-    echo -ne "$CYAN Press ENTER to return...$RESET"
-    read
+    return 0
 }
 
-# Generate unique output filename
-get_output_file() {
-    local input="$1"
-    local suffix="$2"
-    local ext="${input##*.}"
-    local base="$(basename "$input" ".$ext")"
-    local output="$OUTPUT_DIR/${base}_${suffix}_Jubairbro.${ext}"
-    local count=1
-    while [ -f "$output" ]; do
-        output="$OUTPUT_DIR/${base}_${suffix}_Jubairbro($count).${ext}"
-        ((count++))
-    done
-    echo "$output"
-}
-
-# Display processing with fast typing effect
-display_processing() {
-    local message="$1"
-    local dots=""
-    for i in {1..10}; do
-        echo -en "\r$YELLOW $message$dots$RESET"
-        dots="$dots."
-        sleep 0.05 # Fast typing effect
-    done
-    echo -en "\r$GREEN Done!               $RESET\n"
-}
-
-# Compress video with progress bar and typing effect
+# Compress video
 compress_video() {
     local input="$1"
     local quality="$2"
-    if ! validate_file "$input"; then
-        log_operation "compress" "failed" "input:$input"
-        return 1
+    if ! validate_file "$input"; then return 1; fi
+    if ! check_output_dir; then return 1; fi
+    check_memory
+
+    local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
+    echo -e "$YELLOW Pre-processing: Preparing video...$RESET"
+    ffmpeg -i "$input" -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG"
+    if [ $? -ne 0 ]; then
+        echo -e "$YELLOW Pre-processing failed with copy. Trying re-encoding...$RESET"
+        ffmpeg -i "$input" -c:v libx264 -c:a aac -vf "scale=1280:-2" -r 30 "$temp_input" 2>>"$ERROR_LOG"
+        if [ $? -ne 0 ]; then
+            echo -e "$RED Pre-processing failed! Details in $CYAN$ERROR_LOG$RESET"
+            tail -n 5 "$ERROR_LOG"
+            rm -f "$temp_input" 2>/dev/null
+            log_operation "compress" "failed" "preprocess_all input:$input"
+            return 1
+        fi
     fi
+
     local output=$(get_output_file "$input" "compressed")
     local crf preset
     case $quality in
@@ -337,78 +176,161 @@ compress_video() {
         5) crf=16; preset="veryslow" ;;
     esac
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
-    display_processing "Processing"
-    if ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG"; then
-        echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
+    ffmpeg -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -c:a aac "$output" 2>>"$ERROR_LOG"
+    if [ $? -eq 0 ]; then
+        echo -e "$GREEN Completed! Saved: $CYAN$output (Size: $(du -sh "$output" | cut -f1))$RESET"
         log_operation "compress" "success" "level:$quality output:$output"
-        return 0
     else
-        echo -e "\r$RED Compression failed! Check input or ffmpeg.$RESET"
-        log_operation "compress" "failed" "level:$quality input:$input"
-        return 1
+        echo -e "$YELLOW Fallback to H.265...$RESET"
+        output=$(get_output_file "$input" "compressed_fallback")
+        ffmpeg -i "$temp_input" -c:v libx265 -crf "$crf" -preset "$preset" -c:a aac "$output" 2>>"$ERROR_LOG"
+        if [ $? -eq 0 ]; then
+            echo -e "$GREEN Fallback succeeded! Saved: $CYAN$output (Size: $(du -sh "$output" | cut -f1))$RESET"
+            log_operation "compress" "success" "level:$quality output:$output"
+        else
+            echo -e "$RED Compression failed! Details in $CYAN$ERROR_LOG$RESET"
+            tail -n 5 "$ERROR_LOG"
+            log_operation "compress" "failed" "level:$quality input:$input"
+        fi
     fi
+    rm -f "$temp_input" 2>/dev/null
 }
 
-# Add watermark with progress bar and typing effect
+# Add watermark
 add_watermark() {
     local input="$1"
-    local text="$2"
-    if ! validate_file "$input"; then
-        log_operation "watermark" "failed" "input:$input"
-        return 1
-    fi
-    if [ -z "$text" ]; then
-        echo -e "$RED Error: Watermark text required!$RESET"
-        log_operation "watermark" "failed" "no_text"
-        return 1
-    fi
+    local option="$2"
+    local text="$3"
+    local image="$4"
+    local x_pos="$5"
+    local y_pos="$6"
+    if ! validate_file "$input"; then return 1; fi
+    if ! check_output_dir; then return 1; fi
+
     local output=$(get_output_file "$input" "watermarked")
     echo -e "$YELLOW Adding watermark...$RESET"
-    display_processing "Processing"
-    if ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG"; then
-        echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
-        log_operation "watermark" "success" "text:'$text' output:$output"
-        return 0
+    case $option in
+        1) # Text watermark
+            if [ -z "$text" ]; then
+                echo -e "$RED Error: Watermark text required!$RESET"
+                return 1
+            fi
+            ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=10:fontsize=24:fontcolor=white" -codec:a copy "$output" 2>>"$ERROR_LOG"
+            ;;
+        2) # Image watermark
+            if [ -z "$image" ] || [ ! -f "$image" ]; then
+                echo -e "$RED Error: Invalid image path!$RESET"
+                return 1
+            fi
+            ffmpeg -i "$input" -i "$image" -filter_complex "overlay=10:10" -codec:a copy "$output" 2>>"$ERROR_LOG"
+            ;;
+        3) # Logo watermark
+            if [ -z "$image" ] || [ ! -f "$image" ]; then
+                echo -e "$RED Error: Invalid logo path!$RESET"
+                return 1
+            fi
+            ffmpeg -i "$input" -i "$image" -filter_complex "overlay=main_w-overlay_w-10:main_h-overlay_h-10" -codec:a copy "$output" 2>>"$ERROR_LOG"
+            ;;
+        4) # Custom position watermark
+            if [ -z "$text" ] || [ -z "$x_pos" ] || [ -z "$y_pos" ]; then
+                echo -e "$RED Error: Text and position (x, y) required!$RESET"
+                return 1
+            fi
+            ffmpeg -i "$input" -vf "drawtext=text='$text':x=$x_pos:y=$y_pos:fontsize=24:fontcolor=white" -codec:a copy "$output" 2>>"$ERROR_LOG"
+            ;;
+        5) # Timestamp watermark
+            ffmpeg -i "$input" -vf "drawtext=text='%{localtime}:%Y-%m-%d %H:%M:%S':x=10:y=10:fontsize=20:fontcolor=white" -codec:a copy "$output" 2>>"$ERROR_LOG"
+            ;;
+        *)
+            echo -e "$RED Invalid watermark option!$RESET"
+            return 1
+            ;;
+    esac
+
+    if [ $? -eq 0 ]; then
+        echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
+        log_operation "watermark" "success" "option:$option output:$output"
     else
-        echo -e "\r$RED Watermark failed! Check input or ffmpeg.$RESET"
-        log_operation "watermark" "failed" "text:'$text' input:$input"
+        echo -e "$RED Watermark failed! Details in $CYAN$ERROR_LOG$RESET"
+        tail -n 5 "$ERROR_LOG"
+        log_operation "watermark" "failed" "option:$option input:$input"
         return 1
     fi
 }
 
-# Convert video with progress bar and typing effect
+# Convert video
 convert_video() {
     local input="$1"
     local format="$2"
-    if ! validate_file "$input"; then
-        log_operation "convert" "failed" "input:$input"
+    if ! validate_file "$input"; then return 1; fi
+    if ! check_output_dir; then return 1; fi
+    check_memory
+
+    local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
+    echo -e "$YELLOW Pre-processing: Preparing video...$RESET"
+    ffmpeg -i "$input" -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG"
+    if [ $? -ne 0 ]; then
+        echo -e "$RED Pre-processing failed! Details in $CYAN$ERROR_LOG$RESET"
+        rm -f "$temp_input" 2>/dev/null
         return 1
     fi
+
     local output=$(get_output_file "$input" "converted")
-    local codec ext
+    local ext
     case $format in
-        1) codec="libx264"; ext="mp4" ;;
-        2) codec="libx265"; ext="mkv" ;;
-        3) codec="libx264"; ext="mov" ;;
-        4) codec="libvpx-vp9"; ext="webm" ;;
-        5) codec="mpeg4"; ext="avi" ;;
+        1) ext="mp4" ;;
+        2) ext="mkv" ;;
+        3) ext="mov" ;;
+        4) ext="webm" ;;
+        5) ext="avi" ;;
     esac
+    output="${output%.*}.$ext"
     echo -e "$YELLOW Converting to $ext...$RESET"
-    display_processing "Processing"
-    if ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p "$output" 2>>"$ERROR_LOG"; then
-        echo -e "\r$GREEN Completed! Saved: $CYAN$output$RESET"
+    ffmpeg -i "$temp_input" -c:v libx264 -c:a aac "$output" 2>>"$ERROR_LOG"
+    if [ $? -eq 0 ]; then
+        echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "convert" "success" "format:$ext output:$output"
-        return 0
     else
-        echo -e "\r$RED Conversion failed! Check input or ffmpeg.$RESET"
+        echo -e "$RED Conversion failed! Details in $CYAN$ERROR_LOG$RESET"
+        tail -n 5 "$ERROR_LOG"
         log_operation "convert" "failed" "format:$ext input:$input"
+        rm -f "$temp_input" 2>/dev/null
         return 1
     fi
+    rm -f "$temp_input" 2>/dev/null
 }
 
-# Compression menu
+# Helper functions
+get_output_file() {
+    local input="$1"
+    local suffix="$2"
+    local ext="${input##*.}"
+    local base="$(basename "$input" ".$ext")"
+    local output="$OUTPUT_DIR/${base}_${suffix}_JubairBro.${ext}"
+    local count=1
+    while [ -f "$output" ]; do
+        output="$OUTPUT_DIR/${base}_${suffix}_JubairBro($count).${ext}"
+        ((count++))
+    done
+    echo "$output"
+}
+
+display_processing() {
+    local message="$1"
+    local dots=""
+    for i in {1..10}; do
+        echo -en "\r$YELLOW $message$dots$RESET"
+        dots="$dots."
+        sleep 0.05
+    done
+    echo -en "\r$YELLOW $message...$RESET\n"
+}
+
+# Menus
 compression_menu() {
     while true; do
+        clear
+        display_logo
         display_menu "Compress Video"
         echo -e "$GREEN┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
         echo -e "$CYAN┃ Select quality level:             "
@@ -437,17 +359,22 @@ compression_menu() {
     done
 }
 
-# Watermark menu
 watermark_menu() {
     while true; do
+        clear
+        display_logo
         display_menu "Add Watermark"
         echo -e "$YELLOW┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
         echo -e "$YELLOW┃ Select option:                    "
         echo -e "$YELLOW┃ [1] Add text watermark            "
+        echo -e "$YELLOW┃ [2] Add image watermark           "
+        echo -e "$YELLOW┃ [3] Add logo watermark            "
+        echo -e "$YELLOW┃ [4] Custom position watermark     "
+        echo -e "$YELLOW┃ [5] Add timestamp watermark       "
         echo -e "$YELLOW┃ [0] Return to main menu           "
         echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
         echo -e "$RESET"
-        echo -ne "$CYAN Select [0-1]: $RESET"
+        echo -ne "$CYAN Select [0-5]: $RESET"
         read choice
         case $choice in
             1)
@@ -456,7 +383,51 @@ watermark_menu() {
                 path=$(echo "$path" | tr -d "'")
                 echo -ne "$CYAN Watermark text: $RESET"
                 read text
-                add_watermark "$path" "$text"
+                add_watermark "$path" "$choice" "$text"
+                echo -ne "$CYAN Press ENTER to continue...$RESET"
+                read
+                ;;
+            2)
+                echo -ne "$CYAN Video path: $RESET"
+                read path
+                path=$(echo "$path" | tr -d "'")
+                echo -ne "$CYAN Image path: $RESET"
+                read image
+                image=$(echo "$image" | tr -d "'")
+                add_watermark "$path" "$choice" "" "$image"
+                echo -ne "$CYAN Press ENTER to continue...$RESET"
+                read
+                ;;
+            3)
+                echo -ne "$CYAN Video path: $RESET"
+                read path
+                path=$(echo "$path" | tr -d "'")
+                echo -ne "$CYAN Logo path: $RESET"
+                read image
+                image=$(echo "$image" | tr -d "'")
+                add_watermark "$path" "$choice" "" "$image"
+                echo -ne "$CYAN Press ENTER to continue...$RESET"
+                read
+                ;;
+            4)
+                echo -ne "$CYAN Video path: $RESET"
+                read path
+                path=$(echo "$path" | tr -d "'")
+                echo -ne "$CYAN Watermark text: $RESET"
+                read text
+                echo -ne "$CYAN X position: $RESET"
+                read x_pos
+                echo -ne "$CYAN Y position: $RESET"
+                read y_pos
+                add_watermark "$path" "$choice" "$text" "" "$x_pos" "$y_pos"
+                echo -ne "$CYAN Press ENTER to continue...$RESET"
+                read
+                ;;
+            5)
+                echo -ne "$CYAN Video path: $RESET"
+                read path
+                path=$(echo "$path" | tr -d "'")
+                add_watermark "$path" "$choice"
                 echo -ne "$CYAN Press ENTER to continue...$RESET"
                 read
                 ;;
@@ -466,9 +437,10 @@ watermark_menu() {
     done
 }
 
-# Conversion menu
 conversion_menu() {
     while true; do
+        clear
+        display_logo
         display_menu "Convert Format"
         echo -e "$MAGENTA┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
         echo -e "$MAGENTA┃ Select format:                    "
@@ -497,7 +469,6 @@ conversion_menu() {
     done
 }
 
-# Main menu
 main_menu() {
     while true; do
         display_logo
@@ -506,31 +477,18 @@ main_menu() {
         echo -e "$GREEN┃ [1] $GREEN Compress Video$RESET                "
         echo -e "$MAGENTA┃ [2] $MAGENTA Convert Format$RESET            "
         echo -e "$YELLOW┃ [3] $YELLOW Add Watermark$RESET               "
-        echo -e "$CYAN┃ [4] $CYAN Change Output Directory$RESET         "
-        echo -e "$BLUE┃ [5] $BLUE View Logs$RESET                       "
-        echo -e "$GREEN┃ [6] $GREEN System Cleaner$RESET                "
-        echo -e "$MAGENTA┃ [7] $MAGENTA Check for Updates$RESET         "
-        echo -e "$YELLOW┃ [8] $YELLOW Help & Guide$RESET                "
-        echo -e "$CYAN┃ [9] $CYAN Join Telegram Community$RESET         "
         echo -e "$BLUE┃ [0] $BLUE Exit$RESET                           "
         echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
         echo -e "$RESET"
-        echo -ne "$CYAN Select [0-9]: $RESET"
+        echo -ne "$CYAN Select [0-3]: $RESET"
         read choice
         case $choice in
             1) compression_menu ;;
             2) conversion_menu ;;
             3) watermark_menu ;;
-            4) change_output_dir ;;
-            5) view_logs ;;
-            6) clean_system ;;
-            7) check_update ;;
-            8) show_help ;;
-            9) join_telegram ;;
             0)
-                display_logo
                 echo -e "$GREEN Thank you for using $TOOL_NAME!$RESET"
-                echo -e "$YELLOW Developed by $AUTHOR | Join: $CYAN@JubairFF$RESET"
+                echo -e "$YELLOW Crafted by $AUTHOR | Join: $CYAN@JubairFF$RESET"
                 exit 0
                 ;;
             *) echo -e "$RED Invalid choice!$RESET"; sleep 1 ;;
@@ -540,4 +498,5 @@ main_menu() {
 
 # Start the tool
 check_dependencies
+display_logo
 main_menu
