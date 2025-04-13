@@ -271,7 +271,7 @@ show_help() {
     echo -e "$CYAN Features:$RESET"
     echo -e "  - Video Compression: 5 quality levels"
     echo -e "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
-    echo -e "  - Watermarking: Add custom text"
+    echo -e "  - Watermarking: Add custom text with size, color, and position options"
     echo -e "  - Log Viewer: Track activities"
     echo -e "  - System Cleaner: Free up space"
     echo -e "  - Updates: Optional check"
@@ -393,7 +393,7 @@ compress_video() {
     fi
 }
 
-# Add watermark with spinner animation
+# Add watermark with spinner animation and customization
 add_watermark() {
     local input="$1"
     local text="$2"
@@ -409,16 +409,67 @@ add_watermark() {
         log_operation "watermark" "failed" "no_text"
         return 1
     fi
+
+    # Select watermark size
+    echo -e "$CYAN Select watermark size:$RESET"
+    echo -e "  [1] Normal (24px)"
+    echo -e "  [2] Small (28px)"
+    echo -e "  [3] Medium (32px)"
+    echo -e "  [4] Big (36px)"
+    echo -ne "$CYAN Select [1-4]: $RESET"
+    read size_choice
+    case $size_choice in
+        1) fontsize=24 ;;
+        2) fontsize=28 ;;
+        3) fontsize=32 ;;
+        4) fontsize=36 ;;
+        *) echo -e "$RED Invalid choice! Using Normal (24px).$RESET"; fontsize=24 ;;
+    esac
+
+    # Select watermark color
+    echo -e "$CYAN Select watermark color:$RESET"
+    echo -e "  [1] White"
+    echo -e "  [2] Yellow"
+    echo -e "  [3] Cyan"
+    echo -e "  [4] Green"
+    echo -e "  [5] Magenta"
+    echo -ne "$CYAN Select [1-5]: $RESET"
+    read color_choice
+    case $color_choice in
+        1) fontcolor="white@0.7" ;;
+        2) fontcolor="yellow@0.7" ;;
+        3) fontcolor="cyan@0.7" ;;
+        4) fontcolor="green@0.7" ;;
+        5) fontcolor="magenta@0.7" ;;
+        *) echo -e "$RED Invalid choice! Using White.$RESET"; fontcolor="white@0.7" ;;
+    esac
+
+    # Select watermark position
+    echo -e "$CYAN Select watermark position:$RESET"
+    echo -e "  [1] Left-Down"
+    echo -e "  [2] Right-Down"
+    echo -e "  [3] Left-Up"
+    echo -e "  [4] Right-Up"
+    echo -ne "$CYAN Select [1-4]: $RESET"
+    read position_choice
+    case $position_choice in
+        1) position="x=10:y=H-th-10" ;;
+        2) position="x=W-tw-10:y=H-th-10" ;;
+        3) position="x=10:y=10" ;;
+        4) position="x=W-tw-10:y=10" ;;
+        *) echo -e "$RED Invalid choice! Using Left-Down.$RESET"; position="x=10:y=H-th-10" ;;
+    esac
+
     local output=$(get_output_file "$input" "watermarked")
     echo -e "$YELLOW Adding watermark...$RESET"
     display_processing "Starting watermark"
-    (ffmpeg -i "$input" -vf "drawtext=text='$text':x=10:y=H-th-10:fontsize=24:fontcolor=white@0.7:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
+    (ffmpeg -i "$input" -vf "drawtext=text='$text':$position:fontsize=$fontsize:fontcolor=$fontcolor:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
     display_spinner "$pid" "Watermarking"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
-        log_operation "watermark" "success" "text:'$text' output:$output"
+        log_operation "watermark" "success" "text:'$text' size:$fontsize color:$fontcolor position:$position output:$output"
         return 0
     else
         echo -e "$RED Watermark failed! Details in log: $CYAN$ERROR_LOG$RESET"
