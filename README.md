@@ -1,17 +1,19 @@
 # VideoSensi
 
-Yo! VideoSensi is your Termux buddy.  
-Squash videos to fit your phone.  
-Slap on epic watermarks.  
-Flip formats like a pro.  
-Super easy, colorful vibes!  
+Yo! VideoSensi is your Termux sidekick.  
+Make videos tiny in a snap.  
+Add epic watermarks.  
+Switch formats like a boss.  
+Fun, colorful, and dead simple!  
 ~ Jubair Bro
 
-## Setup
-Fire up Termux and roll!  
+## Get Rolling
+Set it up and dive in!  
+**Install**:  
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/jubairbro/VideoSensi/main/setup.sh)
 ```
+**Run**:  
 ```bash
 videosensi
 ```
@@ -19,18 +21,18 @@ videosensi
 ## Screenshots
 <img src="screenshots/Screenshot1.jpg" width="30%"> <img src="screenshots/Screenshot2.jpg" width="30%"> <img src="screenshots/Screenshot3.jpg" width="30%">
 
-Check VideoSensi’s dope menu! Edit videos in a snap.
+VideoSensi’s menu is pure fire! Edit videos in seconds.
 
-## What’s the Deal?
-Make videos pop instantly!  
-| Action      | How it Rocks         |
-|-------------|----------------------|
-| Compress    | Crush video size    |
-| Watermark   | Add your mark       |
-| Convert     | Swap formats easy   |
+## Make It Pop!
+Play with videos like a pro!  
+| Action     | What’s Cool         |
+|------------|---------------------|
+| Compress   | Shrink videos quick |
+| Watermark  | Add your vibe       |
+| Convert    | Swap formats easy   |
 
 ## About
-Built by Jubair Bro 🔥  
-Hang with us: [Facebook](https://facebook.com/groups/tutorialzonebd/) | [Telegram](t.me/JubairFF)  
-License: MIT (check [LICENSE](LICENSE))  
-Big love to Termux crew! 💖
+Made by Jubair Bro 😎  
+Join the gang: [Facebook](https://facebook.com/groups/tutorialzonebd/) | [Telegram](t.me/JubairFF)  
+License: MIT (see [LICENSE](LICENSE))  
+Big vibes for Termux fans! 💖
