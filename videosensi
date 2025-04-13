@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # VideoSensi Pro - A video processing tool by Jubair bro
-# Version: 2.6
+# Version: 2.4
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
 # Description: Open source tool with fast typing loading and error handling
 
 # Initialize variables
-VERSION="2.6"
+VERSION="2.4"
 AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
@@ -364,7 +364,7 @@ display_spinner() {
     echo -en "\r$GREEN Completed!               $RESET\n"
 }
 
-# Compress video with spinner animation
+# Compress video with spinner animation and fallback system
 compress_video() {
     local input="$1"
     local quality="$2"
@@ -386,26 +386,43 @@ compress_video() {
     esac
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
     display_processing "Starting compression"
+
+    # First attempt: Default H.264 with AAC
     (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p -c:a aac "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Compressing"
+    display_spinner "$pid" "Compressing (Attempt 1: H.264)"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
-        log_operation "compress" "success" "level:$quality output:$output"
+        log_operation "compress" "success" "level:$quality method:1 output:$output"
         return 0
     else
-        echo -e "$RED Compression failed! Details in log: $CYAN$ERROR_LOG$RESET"
-        echo -e "$YELLOW Last error: $RESET"
-        tail -n 5 "$ERROR_LOG" | while read -r line; do
-            echo -e "$YELLOW $line$RESET"
-        done
-        log_operation "compress" "failed" "level:$quality input:$input"
-        return 1
+        echo -e "$YELLOW First attempt failed, trying fallback method...$RESET"
+        log_operation "compress" "failed" "level:$quality method:1 input:$input"
+
+        # Fallback attempt: H.265 with MP3 (alternative codec)
+        output=$(get_output_file "$input" "compressed_fallback")
+        (ffmpeg -i "$input" -c:v libx265 -crf "$crf" -preset "$preset" -pix_fmt yuv420p -c:a mp3 "$output" 2>>"$ERROR_LOG") &
+        pid=$!
+        display_spinner "$pid" "Compressing (Attempt 2: H.265)"
+        wait "$pid"
+        if [ $? -eq 0 ]; then
+            echo -e "$GREEN Fallback succeeded! Saved: $CYAN$output$RESET"
+            log_operation "compress" "success" "level:$quality method:2 output:$output"
+            return 0
+        else
+            echo -e "$RED Compression failed! Details in log: $CYAN$ERROR_LOG$RESET"
+            echo -e "$YELLOW Last error: $RESET"
+            tail -n 5 "$ERROR_LOG" | while read -r line; do
+                echo -e "$YELLOW $line$RESET"
+            done
+            log_operation "compress" "failed" "level:$quality method:2 input:$input"
+            return 1
+        fi
     fi
 }
 
-# Add watermark with spinner animation and customization
+# Add watermark with spinner animation, customization, and fallback system
 add_watermark() {
     local input="$1"
     local text="$2"
@@ -475,26 +492,46 @@ add_watermark() {
     local output=$(get_output_file "$input" "watermarked")
     echo -e "$YELLOW Adding watermark...$RESET"
     display_processing "Starting watermark"
+
+    # First attempt: Default drawtext with box
     (ffmpeg -i "$input" -vf "drawtext=text='$text':$position:fontsize=$fontsize:fontcolor=$fontcolor:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Watermarking"
+    display_spinner "$pid" "Watermarking (Attempt 1: Drawtext)"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
-        log_operation "watermark" "success" "text:'$text' size:$fontsize color:$fontcolor position:$position output:$output"
+        log_operation "watermark" "success" "text:'$text' size:$fontsize color:$fontcolor position:$position method:1 output:$output"
         return 0
     else
-        echo -e "$RED Watermark failed! Details in log: $CYAN$ERROR_LOG$RESET"
-        echo -e "$YELLOW Last error: $RESET"
-        tail -n 5 "$ERROR_LOG" | while read -r line; do
-            echo -e "$YELLOW $line$RESET"
-        done
-        log_operation "watermark" "failed" "text:'$text' input:$input"
-        return 1
+        echo -e "$YELLOW First attempt failed, trying fallback method...$RESET"
+        log_operation "watermark" "failed" "text:'$text' size:$fontsize color:$fontcolor position:$position method:1 input:$input"
+
+        # Fallback attempt: Overlay with static image (simplified watermark)
+        local temp_img="/tmp/watermark.png"
+        convert -size 100x50 xc:none -fill "$fontcolor" -draw "text 10,40 '$text'" "$temp_img" 2>/dev/null
+        output=$(get_output_file "$input" "watermarked_fallback")
+        (ffmpeg -i "$input" -i "$temp_img" -filter_complex "overlay=$position" -codec:a copy "$output" 2>>"$ERROR_LOG") &
+        pid=$!
+        display_spinner "$pid" "Watermarking (Attempt 2: Overlay)"
+        wait "$pid"
+        rm -f "$temp_img" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo -e "$GREEN Fallback succeeded! Saved: $CYAN$output$RESET"
+            log_operation "watermark" "success" "text:'$text' size:$fontsize color:$fontcolor position:$position method:2 output:$output"
+            return 0
+        else
+            echo -e "$RED Watermark failed! Details in log: $CYAN$ERROR_LOG$RESET"
+            echo -e "$YELLOW Last error: $RESET"
+            tail -n 5 "$ERROR_LOG" | while read -r line; do
+                echo -e "$YELLOW $line$RESET"
+            done
+            log_operation "watermark" "failed" "text:'$text' size:$fontsize color:$fontcolor position:$position method:2 input:$input"
+            return 1
+        fi
     fi
 }
 
-# Convert video with spinner animation
+# Convert video with spinner animation and fallback system
 convert_video() {
     local input="$1"
     local format="$2"
@@ -517,22 +554,40 @@ convert_video() {
     output="${output%.*}.$ext"  # Ensure correct extension for output
     echo -e "$YELLOW Converting to $ext...$RESET"
     display_processing "Starting conversion"
+
+    # First attempt: Default conversion with AAC audio
     (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p -c:a aac "$output" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Converting"
+    display_spinner "$pid" "Converting (Attempt 1: $ext with AAC)"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
-        log_operation "convert" "success" "format:$ext output:$output"
+        log_operation "convert" "success" "format:$ext method:1 output:$output"
         return 0
     else
-        echo -e "$RED Conversion failed! Details in log: $CYAN$ERROR_LOG$RESET"
-        echo -e "$YELLOW Last error: $RESET"
-        tail -n 5 "$ERROR_LOG" | while read -r line; do
-            echo -e "$YELLOW $line$RESET"
-        done
-        log_operation "convert" "failed" "format:$ext input:$input"
-        return 1
+        echo -e "$YELLOW First attempt failed, trying fallback method...$RESET"
+        log_operation "convert" "failed" "format:$ext method:1 input:$input"
+
+        # Fallback attempt: Alternative audio codec (MP3) with same video codec
+        output=$(get_output_file "$input" "converted_fallback")
+        output="${output%.*}.$ext"  # Ensure correct extension
+        (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p -c:a mp3 "$output" 2>>"$ERROR_LOG") &
+        pid=$!
+        display_spinner "$pid" "Converting (Attempt 2: $ext with MP3)"
+        wait "$pid"
+        if [ $? -eq 0 ]; then
+            echo -e "$GREEN Fallback succeeded! Saved: $CYAN$output$RESET"
+            log_operation "convert" "success" "format:$ext method:2 output:$output"
+            return 0
+        else
+            echo -e "$RED Conversion failed! Details in log: $CYAN$ERROR_LOG$RESET"
+            echo -e "$YELLOW Last error: $RESET"
+            tail -n 5 "$ERROR_LOG" | while read -r line; do
+                echo -e "$YELLOW $line$RESET"
+            done
+            log_operation "convert" "failed" "format:$ext method:2 input:$input"
+            return 1
+        fi
     fi
 }
 
