@@ -7,7 +7,7 @@
 # Description: Open source tool with fast typing loading and error handling
 
 # Initialize variables
-VERSION="2.4"
+VERSION="2.6"
 AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
@@ -140,6 +140,8 @@ check_output_dir() {
 
 # Join Telegram with error handling
 join_telegram() {
+    clear  # Clear the screen
+    display_logo  # Show the logo
     display_menu "Join Telegram Community"
     echo -e "$MAGENTA Connect with $GREEN$AUTHOR$RESET on Telegram: $CYAN@JubairFF$RESET"
     echo -e "$MAGENTA Get updates, support, and more!$RESET"
@@ -164,6 +166,8 @@ join_telegram() {
 
 # Check update (optional) with internet check
 check_update() {
+    clear  # Clear the screen
+    display_logo  # Show the logo
     display_menu "Check for Updates"
     if ! check_internet; then
         echo -e "$RED Update check skipped: No internet.$RESET"
@@ -212,6 +216,8 @@ check_update() {
 
 # View logs
 view_logs() {
+    clear  # Clear the screen
+    display_logo  # Show the logo
     display_menu "View Logs"
     echo -e "$BLUE Recent tool activity:$RESET"
     if [ -f "$OP_LOG" ]; then
@@ -227,6 +233,8 @@ view_logs() {
 
 # Clean system
 clean_system() {
+    clear  # Clear the screen
+    display_logo  # Show the logo
     display_menu "System Cleaner"
     echo -e "$MAGENTA Choose cleaning option:$RESET"
     echo -e "  [1] Remove logs older than 7 days"
@@ -266,6 +274,8 @@ clean_system() {
 
 # Show help
 show_help() {
+    clear  # Clear the screen
+    display_logo  # Show the logo
     display_menu "Help & Guide"
     echo -e "$BLUE Welcome to $GREEN$TOOL_NAME $BLUEv$VERSION $BLUEby $MAGENTA$AUTHOR$RESET"
     echo -e "$CYAN Features:$RESET"
@@ -290,6 +300,8 @@ show_help() {
 
 # Change output directory
 change_output_dir() {
+    clear  # Clear the screen
+    display_logo  # Show the logo
     display_menu "Change Output Directory"
     echo -e "$YELLOW Current path: $CYAN$OUTPUT_DIR$RESET"
     echo -e "$YELLOW Enter new path (press ENTER to keep):$RESET"
@@ -527,6 +539,8 @@ convert_video() {
 # Compression menu
 compression_menu() {
     while true; do
+        clear  # Clear the screen
+        display_logo  # Show the logo
         display_menu "Compress Video"
         echo -e "$GREEN┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
         echo -e "$CYAN┃ Select quality level:             "
@@ -558,6 +572,8 @@ compression_menu() {
 # Watermark menu
 watermark_menu() {
     while true; do
+        clear  # Clear the screen
+        display_logo  # Show the logo
         display_menu "Add Watermark"
         echo -e "$YELLOW┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
         echo -e "$YELLOW┃ Select option:                    "
@@ -587,6 +603,8 @@ watermark_menu() {
 # Conversion menu
 conversion_menu() {
     while true; do
+        clear  # Clear the screen
+        display_logo  # Show the logo
         display_menu "Convert Format"
         echo -e "$MAGENTA┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
         echo -e "$MAGENTA┃ Select format:                    "
