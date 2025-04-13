@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # VideoSensi Pro - A video processing tool by Jubair bro
-# Version: 2.8
+# Version: 2.9
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
 # Description: Open source tool with fast typing loading and error handling
 
 # Initialize variables
-VERSION="2.8"
+VERSION="2.9"
 AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
@@ -382,7 +382,7 @@ compress_video() {
         echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close other apps for better performance.$RESET"
     fi
 
-    # Pre-process: Fix VFR and timestamps
+    # Pre-process: Convert to a standard format (H.264 + AAC) to ensure compatibility
     local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
     # Ensure BASE_DIR is writable
     if [ ! -w "$BASE_DIR" ]; then
@@ -390,19 +390,19 @@ compress_video() {
         log_operation "compress" "failed" "temp_dir_not_writable:$BASE_DIR"
         return 1
     fi
-    echo -e "$YELLOW Pre-processing: Fixing frame rate and timestamps...$RESET"
-    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
+    echo -e "$YELLOW Pre-processing: Standardizing video format...$RESET"
+    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v libx264 -c:a aac "$temp_input" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Pre-processing (Fixing VFR)"
+    display_spinner "$pid" "Pre-processing (Standardizing Format)"
     wait "$pid"
     if [ $? -ne 0 ]; then
         echo -e "$RED Pre-processing failed! File may be corrupted or unsupported. Details in log: $CYAN$ERROR_LOG$RESET"
         rm -f "$temp_input" 2>/dev/null
-        log_operation "compress" "failed" "preprocess_vfr input:$input"
+        log_operation "compress" "failed" "preprocess_standardize input:$input"
         return 1
     fi
 
-    local output=$(get_output_file "$temp_input" "compressed")
+    local output=$(get_output_file "$input" "compressed") # Use original input for output naming
     local crf preset
     case $quality in
         1) crf=32; preset="ultrafast" ;;
@@ -429,7 +429,7 @@ compress_video() {
         log_operation "compress" "failed" "level:$quality method:1 input:$input"
 
         # Method 2: H.265 with MP3
-        output=$(get_output_file "$temp_input" "compressed_fallback1")
+        output=$(get_output_file "$input" "compressed_fallback1")
         (ffmpeg -threads 1 -i "$temp_input" -c:v libx265 -crf "$crf" -preset "$preset" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
         pid=$!
         display_spinner "$pid" "Compressing (Attempt 2: H.265 with MP3)"
@@ -444,7 +444,7 @@ compress_video() {
             log_operation "compress" "failed" "level:$quality method:2 input:$input"
 
             # Method 3: H.264 without audio
-            output=$(get_output_file "$temp_input" "compressed_fallback2")
+            output=$(get_output_file "$input" "compressed_fallback2")
             (ffmpeg -threads 1 -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -an "$output" 2>>"$ERROR_LOG") &
             pid=$!
             display_spinner "$pid" "Compressing (Attempt 3: H.264 without audio)"
@@ -458,8 +458,8 @@ compress_video() {
                 echo -e "$YELLOW Fallback 2 failed, trying final fallback...$RESET"
                 log_operation "compress" "failed" "level:$quality method:3 input:$input"
 
-                # Method 4: Simple copy mode
-                output=$(get_output_file "$temp_input" "compressed_fallback3")
+                # Method 4: Simple copy mode (last resort)
+                output=$(get_output_file "$input" "compressed_fallback3")
                 (ffmpeg -threads 1 -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
                 pid=$!
                 display_spinner "$pid" "Compressing (Attempt 4: Simple copy)"
@@ -611,7 +611,7 @@ convert_video() {
         echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close other apps for better performance.$RESET"
     fi
 
-    # Pre-process: Fix VFR and timestamps
+    # Pre-process: Convert to a standard format (H.264 + AAC) to ensure compatibility
     local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
     # Ensure BASE_DIR is writable
     if [ ! -w "$BASE_DIR" ]; then
@@ -619,19 +619,19 @@ convert_video() {
         log_operation "convert" "failed" "temp_dir_not_writable:$BASE_DIR"
         return 1
     fi
-    echo -e "$YELLOW Pre-processing: Fixing frame rate and timestamps...$RESET"
-    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
+    echo -e "$YELLOW Pre-processing: Standardizing video format...$RESET"
+    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v libx264 -c:a aac "$temp_input" 2>>"$ERROR_LOG") &
     local pid=$!
-    display_spinner "$pid" "Pre-processing (Fixing VFR)"
+    display_spinner "$pid" "Pre-processing (Standardizing Format)"
     wait "$pid"
     if [ $? -ne 0 ]; then
         echo -e "$RED Pre-processing failed! File may be corrupted or unsupported. Details in log: $CYAN$ERROR_LOG$RESET"
         rm -f "$temp_input" 2>/dev/null
-        log_operation "convert" "failed" "preprocess_vfr input:$input"
+        log_operation "convert" "failed" "preprocess_standardize input:$input"
         return 1
     fi
 
-    local output=$(get_output_file "$temp_input" "converted")
+    local output=$(get_output_file "$input" "converted") # Use original input for output naming
     local codec ext
     case $format in
         1) codec="libx264"; ext="mp4" ;;
@@ -659,7 +659,7 @@ convert_video() {
         log_operation "convert" "failed" "format:$ext method:1 input:$input"
 
         # Method 2: Alternative audio codec (MP3)
-        output=$(get_output_file "$temp_input" "converted_fallback1")
+        output=$(get_output_file "$input" "converted_fallback1")
         output="${output%.*}.$ext"
         (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
         pid=$!
@@ -675,7 +675,7 @@ convert_video() {
             log_operation "convert" "failed" "format:$ext method:2 input:$input"
 
             # Method 3: Without audio
-            output=$(get_output_file "$temp_input" "converted_fallback2")
+            output=$(get_output_file "$input" "converted_fallback2")
             output="${output%.*}.$ext"
             (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -an "$output" 2>>"$ERROR_LOG") &
             pid=$!
@@ -690,8 +690,8 @@ convert_video() {
                 echo -e "$YELLOW Fallback 2 failed, trying final fallback...$RESET"
                 log_operation "convert" "failed" "format:$ext method:3 input:$input"
 
-                # Method 4: Simple copy mode
-                output=$(get_output_file "$temp_input" "converted_fallback3")
+                # Method 4: Simple copy mode (last resort)
+                output=$(get_output_file "$input" "converted_fallback3")
                 output="${output%.*}.$ext"
                 (ffmpeg -threads 1 -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
                 pid=$!
