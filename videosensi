@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # VideoSensi Pro - A video processing tool by Jubair bro
-# Version: 2.7
+# Version: 2.8
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
 # Description: Open source tool with fast typing loading and error handling
 
 # Initialize variables
-VERSION="2.7"
+VERSION="2.8"
 AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
@@ -180,7 +180,7 @@ check_update() {
     read choice
     if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
         echo -e "$YELLOW Checking for updates...$RESET"
-        local temp_file="/tmp/vs_temp"
+        local temp_file="$BASE_DIR/vs_temp"
         if curl -s -o "$temp_file" "$UPDATE_URL"; then
             local new_version=$(grep -m1 "VERSION=" "$temp_file" | cut -d'"' -f2)
             if [ "$new_version" != "$VERSION" ]; then
@@ -383,14 +383,20 @@ compress_video() {
     fi
 
     # Pre-process: Fix VFR and timestamps
-    local temp_input="/tmp/temp_preprocessed_$$.mp4"
+    local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
+    # Ensure BASE_DIR is writable
+    if [ ! -w "$BASE_DIR" ]; then
+        echo -e "$RED Error: Cannot write to $BASE_DIR. Check permissions.$RESET"
+        log_operation "compress" "failed" "temp_dir_not_writable:$BASE_DIR"
+        return 1
+    fi
     echo -e "$YELLOW Pre-processing: Fixing frame rate and timestamps...$RESET"
     (ffmpeg -i "$input" -r 30 -vsync 1 -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
     local pid=$!
     display_spinner "$pid" "Pre-processing (Fixing VFR)"
     wait "$pid"
     if [ $? -ne 0 ]; then
-        echo -e "$RED Pre-processing failed! File may be corrupted. Details in log: $CYAN$ERROR_LOG$RESET"
+        echo -e "$RED Pre-processing failed! File may be corrupted or unsupported. Details in log: $CYAN$ERROR_LOG$RESET"
         rm -f "$temp_input" 2>/dev/null
         log_operation "compress" "failed" "preprocess_vfr input:$input"
         return 1
@@ -563,8 +569,8 @@ add_watermark() {
         log_operation "watermark" "failed" "text:'$text' size:$fontsize color:$fontcolor position:$position method:1 input:$input"
 
         # Fallback attempt: Overlay with static image (simplified watermark)
-        local temp_img="/tmp/watermark.png"
-        convert -size 100x50 xc:none -fill "$fontcolor" -draw "text 10,40 '$text'" "$temp_img" 2>/dev/null
+        local temp_img="$BASE_DIR/watermark_$$.png"
+        convert -size 100x50 xc:none -fill "$fontcolor" -draw "text 10,40 '$text'" "$temp_img" 2>>"$ERROR_LOG"
         output=$(get_output_file "$input" "watermarked_fallback")
         (ffmpeg -threads 1 -i "$input" -i "$temp_img" -filter_complex "overlay=$position" -codec:a copy "$output" 2>>"$ERROR_LOG") &
         pid=$!
@@ -606,14 +612,20 @@ convert_video() {
     fi
 
     # Pre-process: Fix VFR and timestamps
-    local temp_input="/tmp/temp_preprocessed_$$.mp4"
+    local temp_input="$BASE_DIR/temp_preprocessed_$$.mp4"
+    # Ensure BASE_DIR is writable
+    if [ ! -w "$BASE_DIR" ]; then
+        echo -e "$RED Error: Cannot write to $BASE_DIR. Check permissions.$RESET"
+        log_operation "convert" "failed" "temp_dir_not_writable:$BASE_DIR"
+        return 1
+    fi
     echo -e "$YELLOW Pre-processing: Fixing frame rate and timestamps...$RESET"
     (ffmpeg -i "$input" -r 30 -vsync 1 -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
     local pid=$!
     display_spinner "$pid" "Pre-processing (Fixing VFR)"
     wait "$pid"
     if [ $? -ne 0 ]; then
-        echo -e "$RED Pre-processing failed! File may be corrupted. Details in log: $CYAN$ERROR_LOG$RESET"
+        echo -e "$RED Pre-processing failed! File may be corrupted or unsupported. Details in log: $CYAN$ERROR_LOG$RESET"
         rm -f "$temp_input" 2>/dev/null
         log_operation "convert" "failed" "preprocess_vfr input:$input"
         return 1
