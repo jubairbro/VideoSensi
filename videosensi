@@ -51,18 +51,18 @@ display_logo() {
     clear
     local color=$CYAN # Cyan logo
     echo -e "$color"
-    echo "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
-    echo "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗"
-    echo "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║"
-    echo "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║"
-    echo "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝"
-    echo "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
-    echo "┠──────────────────────────────────────┨"
-    echo "┃   $TOOL_NAME v$VERSION   "
-    echo "┃   Developed by $AUTHOR   "
-    echo "┃   Telegram: @JubairFF    "
-    echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
-    echo -e "$RESET"
+    echo -e "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+    echo -e "┃ ██╗   ██╗██╗██████╗ ███████╗ ██████╗"
+    echo -e "┃ ██║   ██║██║██╔══██╗██╔════╝██╔═══██╗"
+    echo -e "┃ ██║   ██║██║██║  ██║█████╗  ██║   ██║"
+    echo -e "┃ ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║   ██║"
+    echo -e "┃  ╚████╔╝ ██║██████╔╝███████╗╚██████╔╝"
+    echo -e "┃   ╚═══╝  ╚═╝╚═════╝ ╚══════╝ ╚═════╝ "
+    echo -e "┠──────────────────────────────────────┨"
+    echo -e "┃   $TOOL_NAME v$VERSION   "
+    echo -e "┃   Developed by $AUTHOR   "
+    echo -e "┃   Telegram: @JubairFF    "
+    echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$color┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
     echo -e "$color┃          Tool Loaded!          "
     echo -e "$color┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
@@ -81,9 +81,9 @@ display_menu() {
     local title="$1"
     local color=$(get_random_color)
     echo -e "$color"
-    echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-    echo "┃         $title         "
-    echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+    echo -e "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+    echo -e "┃         $title         "
+    echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$RESET"
 }
 
@@ -125,7 +125,8 @@ join_telegram() {
     display_menu "Join Telegram Community"
     echo -e "$MAGENTA Connect with $GREEN$AUTHOR$RESET on Telegram: $CYAN@JubairFF$RESET"
     echo -e "$MAGENTA Get updates, support, and more!$RESET"
-    read -p "$CYAN Join now? [y/N]: $RESET" choice
+    echo -ne "$CYAN Join now? [y/N]: $RESET"
+    read choice
     if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
         echo -e "$YELLOW Opening Telegram link...$RESET"
         if am start -a android.intent.action.VIEW -d "$TELEGRAM_LINK" >/dev/null 2>&1; then
@@ -139,7 +140,8 @@ join_telegram() {
         echo -e "$YELLOW Skipped. Join later at $CYAN$TELEGRAM_LINK$RESET"
         log_operation "telegram_join" "skipped" "user_choice"
     fi
-    read -p "$CYAN Press ENTER to return...$RESET"
+    echo -ne "$CYAN Press ENTER to return...$RESET"
+    read
 }
 
 # Check update (optional) with internet check
@@ -147,11 +149,13 @@ check_update() {
     display_menu "Check for Updates"
     if ! check_internet; then
         echo -e "$RED Update check skipped: No internet.$RESET"
-        read -p "$CYAN Press ENTER to return...$RESET"
+        echo -ne "$CYAN Press ENTER to return...$RESET"
+        read
         return
     fi
     echo -e "$YELLOW Check for new version? (Optional)$RESET"
-    read -p "$CYAN Proceed? [y/N]: $RESET" choice
+    echo -ne "$CYAN Proceed? [y/N]: $RESET"
+    read choice
     if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
         echo -e "$YELLOW Checking for updates...$RESET"
         local temp_file="/tmp/vs_temp"
@@ -159,7 +163,8 @@ check_update() {
             local new_version=$(grep -m1 "VERSION=" "$temp_file" | cut -d'"' -f2)
             if [ "$new_version" != "$VERSION" ]; then
                 echo -e "$GREEN New version $new_version available! Current: $VERSION$RESET"
-                read -p "$CYAN Update now? [y/N]: $RESET" confirm
+                echo -ne "$CYAN Update now? [y/N]: $RESET"
+                read confirm
                 if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
                     if cp "$temp_file" "$0" 2>/dev/null; then
                         chmod +x "$0"
@@ -183,7 +188,8 @@ check_update() {
     else
         echo -e "$YELLOW Update check skipped.$RESET"
     fi
-    read -p "$CYAN Press ENTER to return...$RESET"
+    echo -ne "$CYAN Press ENTER to return...$RESET"
+    read
 }
 
 # View logs
@@ -197,17 +203,19 @@ view_logs() {
     else
         echo -e "$RED No logs found. Starting fresh!$RESET"
     fi
-    read -p "$CYAN Press ENTER to return...$RESET"
+    echo -ne "$CYAN Press ENTER to return...$RESET"
+    read
 }
 
 # Clean system
 clean_system() {
     display_menu "System Cleaner"
     echo -e "$MAGENTA Choose cleaning option:$RESET"
-    echo "  [1] Remove logs older than 7 days"
-    echo "  [2] Clear output directory ($OUTPUT_DIR)"
-    echo "  [0] Return to main menu"
-    read -p "$CYAN Select [0-2]: $RESET" choice
+    echo -e "  [1] Remove logs older than 7 days"
+    echo -e "  [2] Clear output directory ($OUTPUT_DIR)"
+    echo -e "  [0] Return to main menu"
+    echo -ne "$CYAN Select [0-2]: $RESET"
+    read choice
     case $choice in
         1)
             if find "$LOG_DIR" -type f -mtime +7 -exec rm -f {} + 2>/dev/null; then
@@ -219,7 +227,8 @@ clean_system() {
             fi
             ;;
         2)
-            read -p "$CYAN Confirm clear output? [y/N]: $RESET" confirm
+            echo -ne "$CYAN Confirm clear output? [y/N]: $RESET"
+            read confirm
             if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
                 if find "$OUTPUT_DIR" -type f -exec rm -f {} + 2>/dev/null; then
                     echo -e "$GREEN Output directory cleared!$RESET"
@@ -233,7 +242,8 @@ clean_system() {
         0) return ;;
         *) echo -e "$RED Invalid choice!$RESET" ;;
     esac
-    read -p "$CYAN Press ENTER to return...$RESET"
+    echo -ne "$CYAN Press ENTER to return...$RESET"
+    read
 }
 
 # Show help
@@ -241,22 +251,23 @@ show_help() {
     display_menu "Help & Guide"
     echo -e "$BLUE Welcome to $GREEN$TOOL_NAME $BLUEv$VERSION $BLUEby $MAGENTA$AUTHOR$RESET"
     echo -e "$CYAN Features:$RESET"
-    echo "  - Video Compression: 5 quality levels"
-    echo "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
-    echo "  - Watermarking: Add custom text"
-    echo "  - Log Viewer: Track activities"
-    echo "  - System Cleaner: Free up space"
-    echo "  - Updates: Optional check"
-    echo "  - Community: Join @JubairFF"
+    echo -e "  - Video Compression: 5 quality levels"
+    echo -e "  - Format Conversion: MP4, MKV, MOV, WEBM, AVI"
+    echo -e "  - Watermarking: Add custom text"
+    echo -e "  - Log Viewer: Track activities"
+    echo -e "  - System Cleaner: Free up space"
+    echo -e "  - Updates: Optional check"
+    echo -e "  - Community: Join @JubairFF"
     echo -e "$CYAN Usage Tips:$RESET"
-    echo "  - Use /sdcard/... paths"
-    echo "  - Run 'termux-setup-storage'"
-    echo "  - Check logs with option 5"
-    echo "  - Join Telegram: @JubairFF"
+    echo -e "  - Use /sdcard/... paths"
+    echo -e "  - Run 'termux-setup-storage'"
+    echo -e "  - Check logs with option 5"
+    echo -e "  - Join Telegram: @JubairFF"
     echo -e "$CYAN Contact:$RESET"
-    echo "  Telegram: @JubairFF"
-    echo "  GitHub: github.com/jubairbro"
-    read -p "$CYAN Press ENTER to return...$RESET"
+    echo -e "  Telegram: @JubairFF"
+    echo -e "  GitHub: github.com/jubairbro"
+    echo -ne "$CYAN Press ENTER to return...$RESET"
+    read
 }
 
 # Change output directory
@@ -264,7 +275,8 @@ change_output_dir() {
     display_menu "Change Output Directory"
     echo -e "$YELLOW Current path: $CYAN$OUTPUT_DIR$RESET"
     echo -e "$YELLOW Enter new path (press ENTER to keep):$RESET"
-    read -p "$CYAN Path: $RESET" new_path
+    echo -ne "$CYAN Path: $RESET"
+    read new_path
     if [ -n "$new_path" ]; then
         new_path=$(echo "$new_path" | tr -d "'")
         if mkdir -p "$new_path" 2>/dev/null && [ -w "$new_path" ]; then
@@ -276,7 +288,8 @@ change_output_dir() {
             log_operation "change_dir" "failed" "invalid_path:$new_path"
         fi
     fi
-    read -p "$CYAN Press ENTER to return...$RESET"
+    echo -ne "$CYAN Press ENTER to return...$RESET"
+    read
 }
 
 # Generate unique output filename
@@ -453,14 +466,18 @@ compression_menu() {
         echo -e "$GREEN┃ [4] High (Better quality)        "
         echo -e "$GREEN┃ [5] Ultra High (Best quality)    "
         echo -e "$GREEN┃ [0] Return to main menu          "
-        echo -e "$GREEN┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
-        read -p "$CYAN Select [0-5]: $RESET" choice
+        echo -e "$GREEN┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
+        echo -ne "$CYAN Select [0-5]: $RESET"
+        read choice
         case $choice in
             1|2|3|4|5)
-                read -p "$CYAN Video path: $RESET" path
+                echo -ne "$CYAN Video path: $RESET"
+                read path
                 path=$(echo "$path" | tr -d "'")
                 compress_video "$path" "$choice"
-                read -p "$CYAN Press ENTER to continue...$RESET"
+                echo -ne "$CYAN Press ENTER to continue...$RESET"
+                read
                 ;;
             0) return ;;
             *) echo -e "$RED Invalid choice!$RESET"; sleep 1 ;;
@@ -476,15 +493,20 @@ watermark_menu() {
         echo -e "$YELLOW┃ Select option:                    "
         echo -e "$YELLOW┃ [1] Add text watermark            "
         echo -e "$YELLOW┃ [0] Return to main menu           "
-        echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
-        read -p "$CYAN Select [0-1]: $RESET" choice
+        echo -e "$YELLOW┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
+        echo -ne "$CYAN Select [0-1]: $RESET"
+        read choice
         case $choice in
             1)
-                read -p "$CYAN Video path: $RESET" path
+                echo -ne "$CYAN Video path: $RESET"
+                read path
                 path=$(echo "$path" | tr -d "'")
-                read -p "$CYAN Watermark text: $RESET" text
+                echo -ne "$CYAN Watermark text: $RESET"
+                read text
                 add_watermark "$path" "$text"
-                read -p "$CYAN Press ENTER to continue...$RESET"
+                echo -ne "$CYAN Press ENTER to continue...$RESET"
+                read
                 ;;
             0) return ;;
             *) echo -e "$RED Invalid choice!$RESET"; sleep 1 ;;
@@ -504,14 +526,18 @@ conversion_menu() {
         echo -e "$MAGENTA┃ [4] WEBM (Web optimized)          "
         echo -e "$MAGENTA┃ [5] AVI (Legacy)                  "
         echo -e "$MAGENTA┃ [0] Return to main menu           "
-        echo -e "$MAGENTA┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
-        read -p "$CYAN Select [0-5]: $RESET" choice
+        echo -e "$MAGENTA┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
+        echo -ne "$CYAN Select [0-5]: $RESET"
+        read choice
         case $choice in
             1|2|3|4|5)
-                read -p "$CYAN Video path: $RESET" path
+                echo -ne "$CYAN Video path: $RESET"
+                read path
                 path=$(echo "$path" | tr -d "'")
                 convert_video "$path" "$choice"
-                read -p "$CYAN Press ENTER to continue...$RESET"
+                echo -ne "$CYAN Press ENTER to continue...$RESET"
+                read
                 ;;
             0) return ;;
             *) echo -e "$RED Invalid choice!$RESET"; sleep 1 ;;
@@ -535,8 +561,10 @@ main_menu() {
         echo -e "$YELLOW┃ [8] $YELLOW Help & Guide$RESET                "
         echo -e "$CYAN┃ [9] $CYAN Join Telegram Community$RESET         "
         echo -e "$BLUE┃ [0] $BLUE Exit$RESET                           "
-        echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛$RESET"
-        read -p "$CYAN Select [0-9]: $RESET" choice
+        echo -e "$BLUE┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+        echo -e "$RESET"
+        echo -ne "$CYAN Select [0-9]: $RESET"
+        read choice
         case $choice in
             1) compression_menu ;;
             2) conversion_menu ;;
