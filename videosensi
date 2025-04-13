@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # VideoSensi Pro - A video processing tool by Jubair bro
-# Version: 2.6
+# Version: 2.7
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
 # Description: Open source tool with fast typing loading and error handling
 
 # Initialize variables
-VERSION="2.6"
+VERSION="2.7"
 AUTHOR="Jubair bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
@@ -120,9 +120,9 @@ validate_file() {
         return 1
     fi
     # Check if the file is a valid video using ffprobe
-    if ! ffprobe -v error -show_streams "$file" >/dev/null 2>&1; then
-        echo -e "$RED Error: File is not a valid video or is corrupted: $file$RESET"
-        log_operation "validate_file" "failed" "invalid_video:$file"
+    if ! ffprobe -v error -show_streams -show_format "$file" > "$BASE_DIR/video_info.txt" 2>>"$ERROR_LOG"; then
+        echo -e "$RED Warning: Could not analyze video: $file. File may be corrupted or unsupported.$RESET"
+        log_operation "validate_file" "failed" "invalid_video:$file ffprobe_error"
         return 1
     fi
     return 0
@@ -364,7 +364,7 @@ display_spinner() {
     echo -en "\r$GREEN Completed!               $RESET\n"
 }
 
-# Compress video with spinner animation and fallback system
+# Compress video with spinner animation and enhanced fallback system
 compress_video() {
     local input="$1"
     local quality="$2"
@@ -375,7 +375,28 @@ compress_video() {
     if ! check_output_dir; then
         return 1
     fi
-    local output=$(get_output_file "$input" "compressed")
+
+    # Check free memory before processing
+    local free_mem=$(free -m | grep Mem | awk '{print $4}')
+    if [ "$free_mem" -lt 100 ]; then
+        echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close other apps for better performance.$RESET"
+    fi
+
+    # Pre-process: Fix VFR and timestamps
+    local temp_input="/tmp/temp_preprocessed_$$.mp4"
+    echo -e "$YELLOW Pre-processing: Fixing frame rate and timestamps...$RESET"
+    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
+    local pid=$!
+    display_spinner "$pid" "Pre-processing (Fixing VFR)"
+    wait "$pid"
+    if [ $? -ne 0 ]; then
+        echo -e "$RED Pre-processing failed! File may be corrupted. Details in log: $CYAN$ERROR_LOG$RESET"
+        rm -f "$temp_input" 2>/dev/null
+        log_operation "compress" "failed" "preprocess_vfr input:$input"
+        return 1
+    fi
+
+    local output=$(get_output_file "$temp_input" "compressed")
     local crf preset
     case $quality in
         1) crf=32; preset="ultrafast" ;;
@@ -387,37 +408,72 @@ compress_video() {
     echo -e "$YELLOW Compressing video (Level $quality)...$RESET"
     display_processing "Starting compression"
 
-    # First attempt: Default H.264 with AAC
-    (ffmpeg -i "$input" -c:v libx264 -crf "$crf" -preset "$preset" -pix_fmt yuv420p -c:a aac "$output" 2>>"$ERROR_LOG") &
-    local pid=$!
-    display_spinner "$pid" "Compressing (Attempt 1: H.264)"
+    # Method 1: H.264 with AAC
+    (ffmpeg -threads 1 -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -c:a aac "$output" 2>>"$ERROR_LOG") &
+    pid=$!
+    display_spinner "$pid" "Compressing (Attempt 1: H.264 with AAC)"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "compress" "success" "level:$quality method:1 output:$output"
+        rm -f "$temp_input" 2>/dev/null
         return 0
     else
         echo -e "$YELLOW First attempt failed, trying fallback method...$RESET"
         log_operation "compress" "failed" "level:$quality method:1 input:$input"
 
-        # Fallback attempt: H.265 with MP3 (alternative codec)
-        output=$(get_output_file "$input" "compressed_fallback")
-        (ffmpeg -i "$input" -c:v libx265 -crf "$crf" -preset "$preset" -pix_fmt yuv420p -c:a mp3 "$output" 2>>"$ERROR_LOG") &
+        # Method 2: H.265 with MP3
+        output=$(get_output_file "$temp_input" "compressed_fallback1")
+        (ffmpeg -threads 1 -i "$temp_input" -c:v libx265 -crf "$crf" -preset "$preset" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
         pid=$!
-        display_spinner "$pid" "Compressing (Attempt 2: H.265)"
+        display_spinner "$pid" "Compressing (Attempt 2: H.265 with MP3)"
         wait "$pid"
         if [ $? -eq 0 ]; then
-            echo -e "$GREEN Fallback succeeded! Saved: $CYAN$output$RESET"
+            echo -e "$GREEN Fallback 1 succeeded! Saved: $CYAN$output$RESET"
             log_operation "compress" "success" "level:$quality method:2 output:$output"
+            rm -f "$temp_input" 2>/dev/null
             return 0
         else
-            echo -e "$RED Compression failed! Details in log: $CYAN$ERROR_LOG$RESET"
-            echo -e "$YELLOW Last error: $RESET"
-            tail -n 5 "$ERROR_LOG" | while read -r line; do
-                echo -e "$YELLOW $line$RESET"
-            done
+            echo -e "$YELLOW Fallback 1 failed, trying next fallback...$RESET"
             log_operation "compress" "failed" "level:$quality method:2 input:$input"
-            return 1
+
+            # Method 3: H.264 without audio
+            output=$(get_output_file "$temp_input" "compressed_fallback2")
+            (ffmpeg -threads 1 -i "$temp_input" -c:v libx264 -crf "$crf" -preset "$preset" -an "$output" 2>>"$ERROR_LOG") &
+            pid=$!
+            display_spinner "$pid" "Compressing (Attempt 3: H.264 without audio)"
+            wait "$pid"
+            if [ $? -eq 0 ]; then
+                echo -e "$GREEN Fallback 2 succeeded (audio stripped)! Saved: $CYAN$output$RESET"
+                log_operation "compress" "success" "level:$quality method:3 output:$output"
+                rm -f "$temp_input" 2>/dev/null
+                return 0
+            else
+                echo -e "$YELLOW Fallback 2 failed, trying final fallback...$RESET"
+                log_operation "compress" "failed" "level:$quality method:3 input:$input"
+
+                # Method 4: Simple copy mode
+                output=$(get_output_file "$temp_input" "compressed_fallback3")
+                (ffmpeg -threads 1 -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
+                pid=$!
+                display_spinner "$pid" "Compressing (Attempt 4: Simple copy)"
+                wait "$pid"
+                if [ $? -eq 0 ]; then
+                    echo -e "$GREEN Fallback 3 succeeded (copy mode)! Saved: $CYAN$output$RESET"
+                    log_operation "compress" "success" "level:$quality method:4 output:$output"
+                    rm -f "$temp_input" 2>/dev/null
+                    return 0
+                else
+                    echo -e "$RED Compression failed! Details in log: $CYAN$ERROR_LOG$RESET"
+                    echo -e "$YELLOW Last error: $RESET"
+                    tail -n 5 "$ERROR_LOG" | while read -r line; do
+                        echo -e "$YELLOW $line$RESET"
+                    done
+                    log_operation "compress" "failed" "level:$quality method:4 input:$input"
+                    rm -f "$temp_input" 2>/dev/null
+                    return 1
+                fi
+            fi
         fi
     fi
 }
@@ -494,7 +550,7 @@ add_watermark() {
     display_processing "Starting watermark"
 
     # First attempt: Default drawtext with box
-    (ffmpeg -i "$input" -vf "drawtext=text='$text':$position:fontsize=$fontsize:fontcolor=$fontcolor:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
+    (ffmpeg -threads 1 -i "$input" -vf "drawtext=text='$text':$position:fontsize=$fontsize:fontcolor=$fontcolor:box=1:boxcolor=black@0.5" -codec:a copy "$output" 2>>"$ERROR_LOG") &
     local pid=$!
     display_spinner "$pid" "Watermarking (Attempt 1: Drawtext)"
     wait "$pid"
@@ -510,7 +566,7 @@ add_watermark() {
         local temp_img="/tmp/watermark.png"
         convert -size 100x50 xc:none -fill "$fontcolor" -draw "text 10,40 '$text'" "$temp_img" 2>/dev/null
         output=$(get_output_file "$input" "watermarked_fallback")
-        (ffmpeg -i "$input" -i "$temp_img" -filter_complex "overlay=$position" -codec:a copy "$output" 2>>"$ERROR_LOG") &
+        (ffmpeg -threads 1 -i "$input" -i "$temp_img" -filter_complex "overlay=$position" -codec:a copy "$output" 2>>"$ERROR_LOG") &
         pid=$!
         display_spinner "$pid" "Watermarking (Attempt 2: Overlay)"
         wait "$pid"
@@ -531,7 +587,7 @@ add_watermark() {
     fi
 }
 
-# Convert video with spinner animation and fallback system
+# Convert video with spinner animation and enhanced fallback system
 convert_video() {
     local input="$1"
     local format="$2"
@@ -542,7 +598,28 @@ convert_video() {
     if ! check_output_dir; then
         return 1
     fi
-    local output=$(get_output_file "$input" "converted")
+
+    # Check free memory before processing
+    local free_mem=$(free -m | grep Mem | awk '{print $4}')
+    if [ "$free_mem" -lt 100 ]; then
+        echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close other apps for better performance.$RESET"
+    fi
+
+    # Pre-process: Fix VFR and timestamps
+    local temp_input="/tmp/temp_preprocessed_$$.mp4"
+    echo -e "$YELLOW Pre-processing: Fixing frame rate and timestamps...$RESET"
+    (ffmpeg -i "$input" -r 30 -vsync 1 -c:v copy -c:a copy "$temp_input" 2>>"$ERROR_LOG") &
+    local pid=$!
+    display_spinner "$pid" "Pre-processing (Fixing VFR)"
+    wait "$pid"
+    if [ $? -ne 0 ]; then
+        echo -e "$RED Pre-processing failed! File may be corrupted. Details in log: $CYAN$ERROR_LOG$RESET"
+        rm -f "$temp_input" 2>/dev/null
+        log_operation "convert" "failed" "preprocess_vfr input:$input"
+        return 1
+    fi
+
+    local output=$(get_output_file "$temp_input" "converted")
     local codec ext
     case $format in
         1) codec="libx264"; ext="mp4" ;;
@@ -551,42 +628,79 @@ convert_video() {
         4) codec="libvpx-vp9"; ext="webm" ;;
         5) codec="mpeg4"; ext="avi" ;;
     esac
-    output="${output%.*}.$ext"  # Ensure correct extension for output
+    output="${output%.*}.$ext"
     echo -e "$YELLOW Converting to $ext...$RESET"
     display_processing "Starting conversion"
 
-    # First attempt: Default conversion with AAC audio
-    (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p -c:a aac "$output" 2>>"$ERROR_LOG") &
-    local pid=$!
+    # Method 1: Default conversion with AAC audio
+    (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -c:a aac "$output" 2>>"$ERROR_LOG") &
+    pid=$!
     display_spinner "$pid" "Converting (Attempt 1: $ext with AAC)"
     wait "$pid"
     if [ $? -eq 0 ]; then
         echo -e "$GREEN Completed! Saved: $CYAN$output$RESET"
         log_operation "convert" "success" "format:$ext method:1 output:$output"
+        rm -f "$temp_input" 2>/dev/null
         return 0
     else
         echo -e "$YELLOW First attempt failed, trying fallback method...$RESET"
         log_operation "convert" "failed" "format:$ext method:1 input:$input"
 
-        # Fallback attempt: Alternative audio codec (MP3) with same video codec
-        output=$(get_output_file "$input" "converted_fallback")
-        output="${output%.*}.$ext"  # Ensure correct extension
-        (ffmpeg -i "$input" -c:v "$codec" -pix_fmt yuv420p -c:a mp3 "$output" 2>>"$ERROR_LOG") &
+        # Method 2: Alternative audio codec (MP3)
+        output=$(get_output_file "$temp_input" "converted_fallback1")
+        output="${output%.*}.$ext"
+        (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -c:a mp3 "$output" 2>>"$ERROR_LOG") &
         pid=$!
         display_spinner "$pid" "Converting (Attempt 2: $ext with MP3)"
         wait "$pid"
         if [ $? -eq 0 ]; then
-            echo -e "$GREEN Fallback succeeded! Saved: $CYAN$output$RESET"
+            echo -e "$GREEN Fallback 1 succeeded! Saved: $CYAN$output$RESET"
             log_operation "convert" "success" "format:$ext method:2 output:$output"
+            rm -f "$temp_input" 2>/dev/null
             return 0
         else
-            echo -e "$RED Conversion failed! Details in log: $CYAN$ERROR_LOG$RESET"
-            echo -e "$YELLOW Last error: $RESET"
-            tail -n 5 "$ERROR_LOG" | while read -r line; do
-                echo -e "$YELLOW $line$RESET"
-            done
+            echo -e "$YELLOW Fallback 1 failed, trying next fallback...$RESET"
             log_operation "convert" "failed" "format:$ext method:2 input:$input"
-            return 1
+
+            # Method 3: Without audio
+            output=$(get_output_file "$temp_input" "converted_fallback2")
+            output="${output%.*}.$ext"
+            (ffmpeg -threads 1 -i "$temp_input" -c:v "$codec" -an "$output" 2>>"$ERROR_LOG") &
+            pid=$!
+            display_spinner "$pid" "Converting (Attempt 3: $ext without audio)"
+            wait "$pid"
+            if [ $? -eq 0 ]; then
+                echo -e "$GREEN Fallback 2 succeeded (audio stripped)! Saved: $CYAN$output$RESET"
+                log_operation "convert" "success" "format:$ext method:3 output:$output"
+                rm -f "$temp_input" 2>/dev/null
+                return 0
+            else
+                echo -e "$YELLOW Fallback 2 failed, trying final fallback...$RESET"
+                log_operation "convert" "failed" "format:$ext method:3 input:$input"
+
+                # Method 4: Simple copy mode
+                output=$(get_output_file "$temp_input" "converted_fallback3")
+                output="${output%.*}.$ext"
+                (ffmpeg -threads 1 -i "$temp_input" -c:v copy -c:a copy "$output" 2>>"$ERROR_LOG") &
+                pid=$!
+                display_spinner "$pid" "Converting (Attempt 4: Simple copy)"
+                wait "$pid"
+                if [ $? -eq 0 ]; then
+                    echo -e "$GREEN Fallback 3 succeeded (copy mode)! Saved: $CYAN$output$RESET"
+                    log_operation "convert" "success" "format:$ext method:4 output:$output"
+                    rm -f "$temp_input" 2>/dev/null
+                    return 0
+                else
+                    echo -e "$RED Conversion failed! Details in log: $CYAN$ERROR_LOG$RESET"
+                    echo -e "$YELLOW Last error: $RESET"
+                    tail -n 5 "$ERROR_LOG" | while read -r line; do
+                        echo -e "$YELLOW $line$RESET"
+                    done
+                    log_operation "convert" "failed" "format:$ext method:4 input:$input"
+                    rm -f "$temp_input" 2>/dev/null
+                    return 1
+                fi
+            fi
         fi
     fi
 }
