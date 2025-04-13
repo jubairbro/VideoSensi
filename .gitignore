@@ -1,0 +1,11 @@
+#========================[ VideoSensi Update]========================#
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.temp
+
+# Ignore local directories
+.videosensi/
+.logs/
