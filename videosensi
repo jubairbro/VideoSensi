@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # VideoSensi Pro - A video processing tool by Jubair Bro
-# Version: 3.3
+# Version: 3.3.1
 # GitHub: https://github.com/jubairbro/VideoSensi
 # Telegram: @JubairFF
 # Description: Ultimate tool for video compression, conversion, and watermarking
 
 # Initialize variables
-VERSION="3.3"
+VERSION="3.3.1"
 AUTHOR="Jubair Bro"
 TOOL_NAME="VideoSensi Pro"
 BASE_DIR="$HOME/.videosensi"
@@ -18,9 +18,6 @@ ERROR_LOG="$HIDDEN_DIR/ffmpeg_error.log"
 UPDATE_URL="https://raw.githubusercontent.com/jubairbro/VideoSensi/main/videosensi"
 TELEGRAM_LINK="https://t.me/JubairFF"
 PROGRESS_FILE="$HIDDEN_DIR/progress"
-
-# Create necessary directories
-mkdir -p "$BASE_DIR" "$HIDDEN_DIR" "$OUTPUT_DIR" 2>>"$ERROR_LOG" || { echo -e "$RED Error: Failed to create directories! Check permissions.$RESET"; exit 1; }
 
 # Color definitions
 COLORS=('\033[1;34m' '\033[1;32m' '\033[1;33m' '\033[1;35m' '\033[1;36m')
@@ -35,6 +32,59 @@ RESET='\033[0m'
 # Get random color
 get_random_color() {
     echo "${COLORS[$RANDOM % ${#COLORS[@]}]}"
+}
+
+# Check storage permission and setup
+check_storage_permission() {
+    echo -e "$YELLOW Checking storage permission...$RESET"
+    if [ ! -d "/sdcard" ] || [ ! -w "/sdcard" ]; then
+        echo -e "$YELLOW Storage access not granted. Setting up storage...$RESET"
+        termux-setup-storage
+        sleep 2
+        if [ ! -d "/sdcard" ] || [ ! -w "/sdcard" ]; then
+            echo -e "$RED Error: Storage permission not granted. Please allow storage access in Termux settings and run again.$RESET"
+            echo -e "$YELLOW 1. Go to Termux app settings."
+            echo -e "$YELLOW 2. Allow storage permission."
+            echo -e "$YELLOW 3. Run the script again with: videosensi$RESET"
+            exit 1
+        fi
+    fi
+    echo -e "$GREEN Storage permission granted!$RESET"
+}
+
+# Create necessary directories
+setup_directories() {
+    # First create OUTPUT_DIR
+    if [ ! -d "$OUTPUT_DIR" ]; then
+        mkdir -p "$OUTPUT_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "$RED Error: Failed to create $OUTPUT_DIR. Check permissions.$RESET"
+            echo -e "$YELLOW Try running: termux-setup-storage$RESET"
+            exit 1
+        fi
+    fi
+
+    # Then create HIDDEN_DIR
+    if [ ! -d "$HIDDEN_DIR" ]; then
+        mkdir -p "$HIDDEN_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "$RED Error: Failed to create $HIDDEN_DIR. Check permissions.$RESET"
+            echo -e "$YELLOW Try running: termux-setup-storage$RESET"
+            exit 1
+        fi
+    fi
+
+    # Create BASE_DIR
+    if [ ! -d "$BASE_DIR" ]; then
+        mkdir -p "$BASE_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "$RED Error: Failed to create $BASE_DIR. Check permissions.$RESET"
+            exit 1
+        fi
+    fi
+
+    # Now it's safe to write to ERROR_LOG
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Directory setup completed" >> "$OP_LOG" 2>>"$ERROR_LOG"
 }
 
 # Display logo
@@ -138,13 +188,9 @@ validate_file() {
 # Check output directory
 check_output_dir() {
     if [ ! -d "$OUTPUT_DIR" ] || [ ! -w "$OUTPUT_DIR" ]; then
-        echo -e "$YELLOW Setting up storage...$RESET"
-        termux-setup-storage 2>>"$ERROR_LOG"
-        if [ ! -d "$OUTPUT_DIR" ] || [ ! -w "$OUTPUT_DIR" ]; then
-            echo -e "$RED Error: Output directory $OUTPUT_DIR is not writable. Check permissions.$RESET"
-            log_operation "check_output_dir" "failed" "dir:$OUTPUT_DIR"
-            return 1
-        fi
+        echo -e "$RED Error: Output directory $OUTPUT_DIR is not writable. Check permissions.$RESET"
+        log_operation "check_output_dir" "failed" "dir:$OUTPUT_DIR"
+        return 1
     fi
     if [ ! -d "$HIDDEN_DIR" ] || [ ! -w "$HIDDEN_DIR" ]; then
         echo -e "$RED Error: Hidden directory $HIDDEN_DIR is not writable. Check permissions.$RESET"
@@ -528,6 +574,8 @@ main_menu() {
 }
 
 # Start the tool
+check_storage_permission
+setup_directories
 check_dependencies
 display_logo
 main_menu
