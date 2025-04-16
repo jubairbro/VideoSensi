@@ -19,7 +19,7 @@ videosensi
 ```
 
 ## Screenshots
-<img src="screenshots/Screenshot1.jpg" width="40%"> <img src="screenshots/Screenshot2.jpg" width="40%"> <img src="screenshots/Screenshot3.jpg" width="40%">
+<img src="screenshots/Screenshot1.jpg" width="30%"> <img src="screenshots/Screenshot2.jpg" width="30%"> <img src="screenshots/Screenshot3.jpg" width="30%">
 
 VideoSensi’s menu is pure fire! Edit videos in seconds.
 
