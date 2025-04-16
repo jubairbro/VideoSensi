@@ -161,7 +161,7 @@ check_dependencies() {
 check_memory() {
     local free_mem=$(free -m | grep Mem | awk '{print $4}')
     if [ "$free_mem" -lt 300 ]; then
-        echo -e "$YELLOW Warning: Low memory ($free_mem MB free). Close apps for better performance.$RESET"
+        echo -e "$YELLOW Warning: Low ram memory ($free_mem MB free). Close Background apps for better performance.$RESET"
         log_operation "check_memory" "warning" "low_memory:$free_mem"
     else
         log_operation "check_memory" "success" "memory:$free_mem"
@@ -377,7 +377,7 @@ get_output_file() {
     local suffix="$2"
     local ext="${input##*.}"
     local base="$(basename "$input" ".$ext")"
-    local output="$OUTPUT_DIR/${base}_${suffix}_JubairBro.${ext}"
+    local output="$OUTPUT_DIR/${base}_${suffix}_JubairFF.${ext}"
     local count=1
     while [ -f "$output" ]; do
         output="$OUTPUT_DIR/${base}_${suffix}_JubairBro($count).${ext}"
