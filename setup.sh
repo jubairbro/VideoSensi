@@ -4,25 +4,37 @@
 # Developer: Jubair bro
 # Telegram: https://t.me/JubairFF
 # GitHub: github.com/jubairbro
-# Installer Version: 1.3
+# Installer Version: 1.4
 # Purpose: Fully automated installer using git clone with animations
 
 # Configuration
-INSTALLER_VERSION="1.3"
+INSTALLER_VERSION="1.4"
 TOOL_NAME="VideoSensi Pro"
-SCRIPT_VERSION="2.4"
+SCRIPT_VERSION="3.3.1"
 INSTALL_DIR="/data/data/com.termux/files/usr/bin"
 SCRIPT_NAME="videosensi"
 REPO_URL="https://github.com/jubairbro/VideoSensi.git"
 CLONE_DIR="$HOME/VideoSensi_temp"
-LOG_FILE="$HOME/videosensi_setup.log"
+HIDDEN_DIR="/sdcard/VideoSensi/.JubairVault"
+LOG_FILE="$HIDDEN_DIR/setup.log"
+OLD_LOG_FILE="$HOME/videosensi_setup.log"
 
 # Colors
 RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[1;36m'
+BLUE='\033[1;34m'
+MAGENTA='\033[1;35m'
 NC='\033[0m'
+
+# Spinner colors
+SPINNER_COLORS=('\033[1;36m' '\033[1;33m' '\033[1;32m' '\033[1;35m' '\033[1;34m')
+
+# Get random spinner color
+get_random_spinner_color() {
+    echo "${SPINNER_COLORS[$RANDOM % ${#SPINNER_COLORS[@]}]}"
+}
 
 # Initialize log
 log_message() {
@@ -51,9 +63,10 @@ show_logo() {
     echo "┃ by Jubair bro                        "
     echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "${NC}"
-    local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
     for i in {1..10}; do
-        echo -en "\r${YELLOW}Initializing... ${animation[$((i % 10))]}${NC}"
+        local color=$(get_random_spinner_color)
+        echo -en "\r${color}Initializing... ${animation[$((i % ${#animation[@]}))]}${NC}"
         sleep 0.2
     done
     echo -e "\r${GREEN}Initialization complete!          ${NC}"
@@ -69,6 +82,29 @@ draw_box() {
     echo "│ ${title^} "
     echo "└──────────────────────────────────────┘"
     echo -e "${NC}"
+}
+
+# Check internet connection
+check_internet() {
+    draw_box "Checking Internet Connection"
+    echo -e "${YELLOW}Checking internet connection...${NC}"
+    local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
+    local i=0
+    for attempt in {1..5}; do
+        ping -c 1 8.8.8.8 > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}Internet connection is active!${NC}"
+            log_message "Internet connection active"
+            return 0
+        fi
+        local color=$(get_random_spinner_color)
+        echo -en "\r${color}Checking internet... ${animation[$((i % ${#animation[@]}))]}${NC}"
+        sleep 1
+        ((i++))
+    done
+    echo -e "\r${RED}No internet connection! Please check your network and try again.${NC}"
+    log_message "No internet connection"
+    exit 1
 }
 
 # Remove previous installation
@@ -98,6 +134,16 @@ remove_previous() {
             log_message "Failed to remove config/logs"
         fi
     fi
+    if [ -f "$OLD_LOG_FILE" ]; then
+        echo -e "${YELLOW}Removing old setup log...${NC}"
+        if rm -f "$OLD_LOG_FILE"; then
+            echo -e "${GREEN}Old setup log removed!${NC}"
+            log_message "Removed old setup log at $OLD_LOG_FILE"
+        else
+            echo -e "${RED}Failed to remove old setup log!${NC}"
+            log_message "Failed to remove old setup log at $OLD_LOG_FILE"
+        fi
+    fi
     if [ -d "$CLONE_DIR" ]; then
         echo -e "${YELLOW}Removing old clone directory...${NC}"
         rm -rf "$CLONE_DIR"
@@ -107,45 +153,55 @@ remove_previous() {
     sleep 1
 }
 
-# Update and upgrade packages
+# Update and upgrade packages (optional)
 update_packages() {
-    draw_box "Updating Packages"
-    echo -e "${YELLOW}Running pkg update...${NC}"
-    local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-    (pkg update -y > /dev/null 2>&1) &
-    local pid=$!
-    local i=0
-    while kill -0 $pid 2>/dev/null; do
-        echo -en "\r${YELLOW}Updating... ${animation[$((i % 10))]}${NC}"
-        sleep 0.2
-        ((i++))
-    done
-    wait $pid
-    if [ $? -eq 0 ]; then
-        echo -e "\r${GREEN}Package update complete!          ${NC}"
-        log_message "Package update successful"
+    draw_box "Update and Upgrade Packages"
+    echo -ne "${YELLOW}Do you want to update and upgrade packages? [Y/n]: ${NC}"
+    read choice
+    choice=${choice:-Y}
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Running pkg update...${NC}"
+        local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
+        (pkg update -y > /dev/null 2>&1) &
+        local pid=$!
+        local i=0
+        while kill -0 $pid 2>/dev/null; do
+            local color=$(get_random_spinner_color)
+            echo -en "\r${color}Updating... ${animation[$((i % ${#animation[@]}))]}${NC}"
+            sleep 0.2
+            ((i++))
+        done
+        wait $pid
+        if [ $? -eq 0 ]; then
+            echo -e "\r${GREEN}Package update complete!          ${NC}"
+            log_message "Package update successful"
+        else
+            echo -e "\r${RED}Failed to update packages! Check network.${NC}"
+            log_message "Failed to update packages"
+            exit 1
+        fi
+        echo -e "${YELLOW}Running pkg upgrade...${NC}"
+        (pkg upgrade -y > /dev/null 2>&1) &
+        pid=$!
+        i=0
+        while kill -0 $pid 2>/dev/null; do
+            local color=$(get_random_spinner_color)
+            echo -en "\r${color}Upgrading... ${animation[$((i % ${#animation[@]}))]}${NC}"
+            sleep 0.2
+            ((i++))
+        done
+        wait $pid
+        if [ $? -eq 0 ]; then
+            echo -e "\r${GREEN}Package upgrade complete!          ${NC}"
+            log_message "Package upgrade successful"
+        else
+            echo -e "\r${RED}Failed to upgrade packages! Check network.${NC}"
+            log_message "Failed to upgrade packages"
+            exit 1
+        fi
     else
-        echo -e "\r${RED}Failed to update packages! Check network.${NC}"
-        log_message "Failed to update packages"
-        exit 1
-    fi
-    echo -e "${YELLOW}Running pkg upgrade...${NC}"
-    (pkg upgrade -y > /dev/null 2>&1) &
-    pid=$!
-    i=0
-    while kill -0 $pid 2>/dev/null; do
-        echo -en "\r${YELLOW}Upgrading... ${animation[$((i % 10))]}${NC}"
-        sleep 0.2
-        ((i++))
-    done
-    wait $pid
-    if [ $? -eq 0 ]; then
-        echo -e "\r${GREEN}Package upgrade complete!          ${NC}"
-        log_message "Package upgrade successful"
-    else
-        echo -e "\r${RED}Failed to upgrade packages! Check network.${NC}"
-        log_message "Failed to upgrade packages"
-        exit 1
+        echo -e "${GREEN}Skipping package update and upgrade...${NC}"
+        log_message "Skipped package update and upgrade"
     fi
     sleep 1
 }
@@ -153,17 +209,18 @@ update_packages() {
 # Install dependencies
 install_dependencies() {
     draw_box "Installing Dependencies"
-    local deps=("ffmpeg" "curl" "git")
+    local deps=("ffmpeg" "curl" "git" "ffprobe")
     for dep in "${deps[@]}"; do
         echo -e "${YELLOW}Checking $dep...${NC}"
         if ! command -v "$dep" > /dev/null 2>&1; then
             echo -e "${YELLOW}Installing $dep...${NC}"
-            local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+            local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
             (pkg install -y "$dep" > /dev/null 2>&1) &
             local pid=$!
             local i=0
             while kill -0 $pid 2>/dev/null; do
-                echo -en "\r${YELLOW}Installing $dep... ${animation[$((i % 10))]}${NC}"
+                local color=$(get_random_spinner_color)
+                echo -en "\r${color}Installing $dep... ${animation[$((i % ${#animation[@]}))]}${NC}"
                 sleep 0.2
                 ((i++))
             done
@@ -173,6 +230,8 @@ install_dependencies() {
                 log_message "$dep installed"
             else
                 echo -e "\r${RED}Failed to install $dep! Run 'pkg install $dep' manually.${NC}"
+                echo -e "${YELLOW}1. Run: pkg install $dep"
+                echo -e "${YELLOW}2. Try running the installer again.${NC}"
                 log_message "Failed to install $dep"
                 exit 1
             fi
@@ -190,12 +249,13 @@ setup_storage() {
     echo -e "${YELLOW}Checking storage permission...${NC}"
     if ! [ -d "/sdcard" ] || ! touch "/sdcard/test.txt" 2>/dev/null; then
         echo -e "${YELLOW}Setting up storage access...${NC}"
-        local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+        local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
         (termux-setup-storage > /dev/null 2>&1) &
         local pid=$!
         local i=0
         while kill -0 $pid 2>/dev/null; do
-            echo -en "\r${YELLOW}Setting up storage... ${animation[$((i % 10))]}${NC}"
+            local color=$(get_random_spinner_color)
+            echo -en "\r${color}Setting up storage... ${animation[$((i % ${#animation[@]}))]}${NC}"
             sleep 0.2
             ((i++))
         done
@@ -205,7 +265,10 @@ setup_storage() {
             echo -e "\r${GREEN}Storage permission granted!          ${NC}"
             log_message "Storage permission granted"
         else
-            echo -e "\r${RED}Failed to setup storage! Run 'termux-setup-storage' manually.${NC}"
+            echo -e "\r${RED}Failed to setup storage!${NC}"
+            echo -e "${YELLOW}1. Run: termux-setup-storage"
+            echo -e "${YELLOW}2. Allow storage permission in Termux settings."
+            echo -e "${YELLOW}3. Run the installer again.${NC}"
             log_message "Failed to setup storage"
             exit 1
         fi
@@ -220,7 +283,22 @@ setup_storage() {
         log_message "Created output directory /sdcard/VideoSensi"
     else
         echo -e "${RED}Failed to create /sdcard/VideoSensi! Check permissions.${NC}"
+        echo -e "${YELLOW}1. Run: termux-setup-storage"
+        echo -e "${YELLOW}2. Allow storage permission in Termux settings."
+        echo -e "${YELLOW}3. Run the installer again.${NC}"
         log_message "Failed to create /sdcard/VideoSensi"
+        exit 1
+    fi
+    echo -e "${YELLOW}Creating hidden directory...${NC}"
+    if mkdir -p "$HIDDEN_DIR"; then
+        echo -e "${GREEN}Hidden directory created: $HIDDEN_DIR${NC}"
+        log_message "Created hidden directory $HIDDEN_DIR"
+    else
+        echo -e "${RED}Failed to create $HIDDEN_DIR! Check permissions.${NC}"
+        echo -e "${YELLOW}1. Run: termux-setup-storage"
+        echo -e "${YELLOW}2. Allow storage permission in Termux settings."
+        echo -e "${YELLOW}3. Run the installer again.${NC}"
+        log_message "Failed to create $HIDDEN_DIR"
         exit 1
     fi
     sleep 1
@@ -230,7 +308,7 @@ setup_storage() {
 install_videosensi() {
     draw_box "Installing VideoSensi"
     echo -e "${YELLOW}Cloning repository...${NC}"
-    local animation=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
     if [ -d "$CLONE_DIR" ]; then
         rm -rf "$CLONE_DIR"
     fi
@@ -238,7 +316,8 @@ install_videosensi() {
     local pid=$!
     local i=0
     while kill -0 $pid 2>/dev/null; do
-        echo -en "\r${YELLOW}Cloning... ${animation[$((i % 10))]}${NC}"
+        local color=$(get_random_spinner_color)
+        echo -en "\r${color}Cloning... ${animation[$((i % ${#animation[@]}))]}${NC}"
         sleep 0.2
         ((i++))
     done
@@ -247,7 +326,10 @@ install_videosensi() {
         echo -e "\r${GREEN}Repository cloned successfully!          ${NC}"
         log_message "Cloned repository from $REPO_URL"
     else
-        echo -e "\r${RED}Failed to clone repository! Check network or URL: $REPO_URL${NC}"
+        echo -e "\r${RED}Failed to clone repository!${NC}"
+        echo -e "${YELLOW}1. Check your internet connection."
+        echo -e "${YELLOW}2. Verify the repository URL: $REPO_URL"
+        echo -e "${YELLOW}3. Run the installer again.${NC}"
         echo -e "${YELLOW}Debug log: $LOG_FILE${NC}"
         log_message "Failed to clone repository"
         exit 1
@@ -260,12 +342,17 @@ install_videosensi() {
             echo -e "${GREEN}Script made executable!${NC}"
             log_message "Made script executable"
         else
-            echo -e "${RED}Failed to make script executable! Run 'chmod +x $INSTALL_DIR/$SCRIPT_NAME' manually.${NC}"
+            echo -e "${RED}Failed to make script executable!${NC}"
+            echo -e "${YELLOW}1. Run: chmod +x $INSTALL_DIR/$SCRIPT_NAME"
+            echo -e "${YELLOW}2. Run the installer again or use: videosensi${NC}"
             log_message "Failed to make script executable"
             exit 1
         fi
     else
         echo -e "${RED}Failed to install script! Check permissions at $INSTALL_DIR${NC}"
+        echo -e "${YELLOW}1. Check Termux permissions."
+        echo -e "${YELLOW}2. Ensure $INSTALL_DIR is writable."
+        echo -e "${YELLOW}3. Run the installer again.${NC}"
         log_message "Failed to install script to $INSTALL_DIR/$SCRIPT_NAME"
         exit 1
     fi
@@ -286,14 +373,38 @@ verify_installation() {
             echo -e "${YELLOW}Run it using: ${CYAN}videosensi${NC}"
             log_message "Installation verified"
         else
-            echo -e "${RED}Script exists but is not executable! Run 'chmod +x $INSTALL_DIR/$SCRIPT_NAME' manually.${NC}"
+            echo -e "${RED}Script exists but is not executable!${NC}"
+            echo -e "${YELLOW}1. Run: chmod +x $INSTALL_DIR/$SCRIPT_NAME"
+            echo -e "${YELLOW}2. Run the installer again or use: videosensi${NC}"
             log_message "Script not executable"
             exit 1
         fi
     else
         echo -e "${RED}Script not found at $INSTALL_DIR/$SCRIPT_NAME! Installation failed.${NC}"
+        echo -e "${YELLOW}Debug log: $LOG_FILE${NC}"
         log_message "Script not found at $INSTALL_DIR/$SCRIPT_NAME"
         exit 1
+    fi
+    sleep 1
+}
+
+# Show installation log (optional)
+show_installation_log() {
+    echo -ne "${YELLOW}Do you want to see the installation processing log? [Y/n]: ${NC}"
+    read choice
+    choice=${choice:-Y}
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        draw_box "Installation Log"
+        if [ -f "$LOG_FILE" ]; then
+            echo -e "${CYAN}Showing last 20 lines of $LOG_FILE:${NC}"
+            tail -n 20 "$LOG_FILE"
+            echo -e "${YELLOW}Full log available at: $LOG_FILE${NC}"
+        else
+            echo -e "${RED}Log file not found at $LOG_FILE!${NC}"
+        fi
+    else
+        echo -e "${GREEN}Skipping installation log display...${NC}"
+        echo -e "${YELLOW}Log available at: $LOG_FILE${NC}"
     fi
     sleep 1
 }
@@ -305,11 +416,13 @@ main() {
     log_message "Started setup v$INSTALLER_VERSION"
     sleep 1
     remove_previous
+    check_internet
     update_packages
     install_dependencies
     setup_storage
     install_videosensi
     verify_installation
+    show_installation_log
     show_logo
     echo -e "${GREEN}Setup completed successfully!${NC}"
     echo -e "${CYAN}Run VideoSensi by typing: ${YELLOW}videosensi${NC}"
