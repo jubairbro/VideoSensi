@@ -4,11 +4,11 @@
 # Developer: Jubair bro
 # Telegram: https://t.me/JubairFF
 # GitHub: github.com/jubairbro
-# Installer Version: 1.4
+# Installer Version: 1.4.2
 # Purpose: Fully automated installer using git clone with animations
 
 # Configuration
-INSTALLER_VERSION="1.4"
+INSTALLER_VERSION="1.4.2"
 TOOL_NAME="VideoSensi Pro"
 SCRIPT_VERSION="3.3.1"
 INSTALL_DIR="/data/data/com.termux/files/usr/bin"
@@ -30,6 +30,9 @@ NC='\033[0m'
 
 # Spinner colors
 SPINNER_COLORS=('\033[1;36m' '\033[1;33m' '\033[1;32m' '\033[1;35m' '\033[1;34m')
+
+# Global variable to control live processing output
+SHOW_PROCESSING="false"
 
 # Get random spinner color
 get_random_spinner_color() {
@@ -63,11 +66,11 @@ show_logo() {
     echo "┃ by Jubair bro                        "
     echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "${NC}"
-    local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
-    for i in {1..10}; do
+    local animation=("★" "✦" "✧" "✨" "◉" "●" "○" "◌" "◈" "◆" "◇" "■" "□" "▲" "▼" "▶" "◀" "➤" "➔" "→" "←" "↑" "↓" "✽" "❖" "✿" "❀" "❁" "♠" "♣" "♥" "♦" "♤" "♡" "♢" "♧" "⚡" "☀" "☁" "☂" "☄" "★" "☆" "✪" "✫" "✬" "✯" "✰" "✴" "✵" "✹")
+    for i in {1..20}; do
         local color=$(get_random_spinner_color)
-        echo -en "\r${color}Initializing... ${animation[$((i % ${#animation[@]}))]}${NC}"
-        sleep 0.2
+        echo -en "\r${YELLOW}Initializing... ${color}${animation[$((i % ${#animation[@]}))]}${NC}"
+        sleep 0.05
     done
     echo -e "\r${GREEN}Initialization complete!          ${NC}"
     log_message "Initialized installer"
@@ -84,27 +87,22 @@ draw_box() {
     echo -e "${NC}"
 }
 
-# Check internet connection
-check_internet() {
-    draw_box "Checking Internet Connection"
-    echo -e "${YELLOW}Checking internet connection...${NC}"
-    local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
-    local i=0
-    for attempt in {1..5}; do
-        ping -c 1 8.8.8.8 > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}Internet connection is active!${NC}"
-            log_message "Internet connection active"
-            return 0
-        fi
-        local color=$(get_random_spinner_color)
-        echo -en "\r${color}Checking internet... ${animation[$((i % ${#animation[@]}))]}${NC}"
-        sleep 1
-        ((i++))
-    done
-    echo -e "\r${RED}No internet connection! Please check your network and try again.${NC}"
-    log_message "No internet connection"
-    exit 1
+# Ask user for live processing output preference
+ask_live_processing() {
+    draw_box "Live Processing Preference"
+    echo -ne "${YELLOW}Do you want to see live processing output? [Y/n]: ${NC}"
+    read choice
+    choice=${choice:-Y}
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        SHOW_PROCESSING="true"
+        echo -e "${GREEN}Live processing output will be shown.${NC}"
+        log_message "Live processing output enabled"
+    else
+        SHOW_PROCESSING="false"
+        echo -e "${GREEN}Live processing output will be hidden.${NC}"
+        log_message "Live processing output disabled"
+    fi
+    sleep 1
 }
 
 # Remove previous installation
@@ -161,43 +159,65 @@ update_packages() {
     choice=${choice:-Y}
     if [[ "$choice" =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}Running pkg update...${NC}"
-        local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
-        (pkg update -y > /dev/null 2>&1) &
-        local pid=$!
-        local i=0
-        while kill -0 $pid 2>/dev/null; do
-            local color=$(get_random_spinner_color)
-            echo -en "\r${color}Updating... ${animation[$((i % ${#animation[@]}))]}${NC}"
-            sleep 0.2
-            ((i++))
-        done
-        wait $pid
-        if [ $? -eq 0 ]; then
-            echo -e "\r${GREEN}Package update complete!          ${NC}"
-            log_message "Package update successful"
+        local animation=("★" "✦" "✧" "✨" "◉" "●" "○" "◌" "◈" "◆" "◇" "■" "□" "▲" "▼" "▶" "◀" "➤" "➔" "→" "←" "↑" "↓" "✽" "❖" "✿" "❀" "❁" "♠" "♣" "♥" "♦" "♤" "♡" "♢" "♧" "⚡" "☀" "☁" "☂" "☄" "★" "☆" "✪" "✫" "✬" "✯" "✰" "✴" "✵" "✹")
+        if [ "$SHOW_PROCESSING" = "true" ]; then
+            pkg update -y
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}Package update complete!${NC}"
+                log_message "Package update successful"
+            else
+                echo -e "${RED}Failed to update packages! Check network.${NC}"
+                log_message "Failed to update packages"
+                exit 1
+            fi
         else
-            echo -e "\r${RED}Failed to update packages! Check network.${NC}"
-            log_message "Failed to update packages"
-            exit 1
+            (pkg update -y > /dev/null 2>&1) &
+            local pid=$!
+            local i=0
+            while kill -0 $pid 2>/dev/null; do
+                local color=$(get_random_spinner_color)
+                echo -en "\r${YELLOW}Updating... ${color}${animation[$((i % ${#animation[@]}))]}${NC}"
+                sleep 0.05
+            done
+            wait $pid
+            if [ $? -eq 0 ]; then
+                echo -e "\r${GREEN}Package update complete!          ${NC}"
+                log_message "Package update successful"
+            else
+                echo -e "\r${RED}Failed to update packages! Check network.${NC}"
+                log_message "Failed to update packages"
+                exit 1
+            fi
         fi
         echo -e "${YELLOW}Running pkg upgrade...${NC}"
-        (pkg upgrade -y > /dev/null 2>&1) &
-        pid=$!
-        i=0
-        while kill -0 $pid 2>/dev/null; do
-            local color=$(get_random_spinner_color)
-            echo -en "\r${color}Upgrading... ${animation[$((i % ${#animation[@]}))]}${NC}"
-            sleep 0.2
-            ((i++))
-        done
-        wait $pid
-        if [ $? -eq 0 ]; then
-            echo -e "\r${GREEN}Package upgrade complete!          ${NC}"
-            log_message "Package upgrade successful"
+        if [ "$SHOW_PROCESSING" = "true" ]; then
+            pkg upgrade -y
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}Package upgrade complete!${NC}"
+                log_message "Package upgrade successful"
+            else
+                echo -e "${RED}Failed to upgrade packages! Check network.${NC}"
+                log_message "Failed to upgrade packages"
+                exit 1
+            fi
         else
-            echo -e "\r${RED}Failed to upgrade packages! Check network.${NC}"
-            log_message "Failed to upgrade packages"
-            exit 1
+            (pkg upgrade -y > /dev/null 2>&1) &
+            local pid=$!
+            local i=0
+            while kill -0 $pid 2>/dev/null; do
+                local color=$(get_random_spinner_color)
+                echo -en "\r${YELLOW}Upgrading... ${color}${animation[$((i % ${#animation[@]}))]}${NC}"
+                sleep 0.05
+            done
+            wait $pid
+            if [ $? -eq 0 ]; then
+                echo -e "\r${GREEN}Package upgrade complete!          ${NC}"
+                log_message "Package upgrade successful"
+            else
+                echo -e "\r${RED}Failed to upgrade packages! Check network.${NC}"
+                log_message "Failed to upgrade packages"
+                exit 1
+            fi
         fi
     else
         echo -e "${GREEN}Skipping package update and upgrade...${NC}"
@@ -214,26 +234,39 @@ install_dependencies() {
         echo -e "${YELLOW}Checking $dep...${NC}"
         if ! command -v "$dep" > /dev/null 2>&1; then
             echo -e "${YELLOW}Installing $dep...${NC}"
-            local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
-            (pkg install -y "$dep" > /dev/null 2>&1) &
-            local pid=$!
-            local i=0
-            while kill -0 $pid 2>/dev/null; do
-                local color=$(get_random_spinner_color)
-                echo -en "\r${color}Installing $dep... ${animation[$((i % ${#animation[@]}))]}${NC}"
-                sleep 0.2
-                ((i++))
-            done
-            wait $pid
-            if command -v "$dep" > /dev/null 2>&1; then
-                echo -e "\r${GREEN}$dep installed successfully!          ${NC}"
-                log_message "$dep installed"
+            local animation=("★" "✦" "✧" "✨" "◉" "●" "○" "◌" "◈" "◆" "◇" "■" "□" "▲" "▼" "▶" "◀" "➤" "➔" "→" "←" "↑" "↓" "✽" "❖" "✿" "❀" "❁" "♠" "♣" "♥" "♦" "♤" "♡" "♢" "♧" "⚡" "☀" "☁" "☂" "☄" "★" "☆" "✪" "✫" "✬" "✯" "✰" "✴" "✵" "✹")
+            if [ "$SHOW_PROCESSING" = "true" ]; then
+                pkg install -y "$dep"
+                if command -v "$dep" > /dev/null 2>&1; then
+                    echo -e "${GREEN}$dep installed successfully!${NC}"
+                    log_message "$dep installed"
+                else
+                    echo -e "${RED}Failed to install $dep! Run 'pkg install $dep' manually.${NC}"
+                    echo -e "${YELLOW}1. Run: pkg install $dep"
+                    echo -e "${YELLOW}2. Try running the installer again.${NC}"
+                    log_message "Failed to install $dep"
+                    exit 1
+                fi
             else
-                echo -e "\r${RED}Failed to install $dep! Run 'pkg install $dep' manually.${NC}"
-                echo -e "${YELLOW}1. Run: pkg install $dep"
-                echo -e "${YELLOW}2. Try running the installer again.${NC}"
-                log_message "Failed to install $dep"
-                exit 1
+                (pkg install -y "$dep" > /dev/null 2>&1) &
+                local pid=$!
+                local i=0
+                while kill -0 $pid 2>/dev/null; do
+                    local color=$(get_random_spinner_color)
+                    echo -en "\r${YELLOW}Installing $dep... ${color}${animation[$((i % ${#animation[@]}))]}${NC}"
+                    sleep 0.05
+                done
+                wait $pid
+                if command -v "$dep" > /dev/null 2>&1; then
+                    echo -e "\r${GREEN}$dep installed successfully!          ${NC}"
+                    log_message "$dep installed"
+                else
+                    echo -e "\r${RED}Failed to install $dep! Run 'pkg install $dep' manually.${NC}"
+                    echo -e "${YELLOW}1. Run: pkg install $dep"
+                    echo -e "${YELLOW}2. Try running the installer again.${NC}"
+                    log_message "Failed to install $dep"
+                    exit 1
+                fi
             fi
         else
             echo -e "${GREEN}$dep already installed!${NC}"
@@ -249,28 +282,43 @@ setup_storage() {
     echo -e "${YELLOW}Checking storage permission...${NC}"
     if ! [ -d "/sdcard" ] || ! touch "/sdcard/test.txt" 2>/dev/null; then
         echo -e "${YELLOW}Setting up storage access...${NC}"
-        local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
-        (termux-setup-storage > /dev/null 2>&1) &
-        local pid=$!
-        local i=0
-        while kill -0 $pid 2>/dev/null; do
-            local color=$(get_random_spinner_color)
-            echo -en "\r${color}Setting up storage... ${animation[$((i % ${#animation[@]}))]}${NC}"
-            sleep 0.2
-            ((i++))
-        done
-        wait $pid
-        if [ -d "/sdcard" ] && touch "/sdcard/test.txt" 2>/dev/null; then
-            rm -f "/sdcard/test.txt"
-            echo -e "\r${GREEN}Storage permission granted!          ${NC}"
-            log_message "Storage permission granted"
+        local animation=("★" "✦" "✧" "✨" "◉" "●" "○" "◌" "◈" "◆" "◇" "■" "□" "▲" "▼" "▶" "◀" "➤" "➔" "→" "←" "↑" "↓" "✽" "❖" "✿" "❀" "❁" "♠" "♣" "♥" "♦" "♤" "♡" "♢" "♧" "⚡" "☀" "☁" "☂" "☄" "★" "☆" "✪" "✫" "✬" "✯" "✰" "✴" "✵" "✹")
+        if [ "$SHOW_PROCESSING" = "true" ]; then
+            termux-setup-storage
+            if [ -d "/sdcard" ] && touch "/sdcard/test.txt" 2>/dev/null; then
+                rm -f "/sdcard/test.txt"
+                echo -e "${GREEN}Storage permission granted!${NC}"
+                log_message "Storage permission granted"
+            else
+                echo -e "${RED}Failed to setup storage!${NC}"
+                echo -e "${YELLOW}1. Run: termux-setup-storage"
+                echo -e "${YELLOW}2. Allow storage permission in Termux settings."
+                echo -e "${YELLOW}3. Run the installer again.${NC}"
+                log_message "Failed to setup storage"
+                exit 1
+            fi
         else
-            echo -e "\r${RED}Failed to setup storage!${NC}"
-            echo -e "${YELLOW}1. Run: termux-setup-storage"
-            echo -e "${YELLOW}2. Allow storage permission in Termux settings."
-            echo -e "${YELLOW}3. Run the installer again.${NC}"
-            log_message "Failed to setup storage"
-            exit 1
+            (termux-setup-storage > /dev/null 2>&1) &
+            local pid=$!
+            local i=0
+            while kill -0 $pid 2>/dev/null; do
+                local color=$(get_random_spinner_color)
+                echo -en "\r${YELLOW}Setting up storage... ${color}${animation[$((i % ${#animation[@]}))]}${NC}"
+                sleep 0.05
+            done
+            wait $pid
+            if [ -d "/sdcard" ] && touch "/sdcard/test.txt" 2>/dev/null; then
+                rm -f "/sdcard/test.txt"
+                echo -e "\r${GREEN}Storage permission granted!          ${NC}"
+                log_message "Storage permission granted"
+            else
+                echo -e "\r${RED}Failed to setup storage!${NC}"
+                echo -e "${YELLOW}1. Run: termux-setup-storage"
+                echo -e "${YELLOW}2. Allow storage permission in Termux settings."
+                echo -e "${YELLOW}3. Run the installer again.${NC}"
+                log_message "Failed to setup storage"
+                exit 1
+            fi
         fi
     else
         rm -f "/sdcard/test.txt" 2>/dev/null
@@ -308,31 +356,46 @@ setup_storage() {
 install_videosensi() {
     draw_box "Installing VideoSensi"
     echo -e "${YELLOW}Cloning repository...${NC}"
-    local animation=("%" "+" "/" "|" "-" "=" "*" "#" "@" "!" "^" "&" ">" "<" "~" "?" ":" ";" "$" "•")
+    local animation=("★" "✦" "✧" "✨" "◉" "●" "○" "◌" "◈" "◆" "◇" "■" "□" "▲" "▼" "▶" "◀" "➤" "➔" "→" "←" "↑" "↓" "✽" "❖" "✿" "❀" "❁" "♠" "♣" "♥" "♦" "♤" "♡" "♢" "♧" "⚡" "☀" "☁" "☂" "☄" "★" "☆" "✪" "✫" "✬" "✯" "✰" "✴" "✵" "✹")
     if [ -d "$CLONE_DIR" ]; then
         rm -rf "$CLONE_DIR"
     fi
-    (git clone "$REPO_URL" "$CLONE_DIR" > /dev/null 2>&1) &
-    local pid=$!
-    local i=0
-    while kill -0 $pid 2>/dev/null; do
-        local color=$(get_random_spinner_color)
-        echo -en "\r${color}Cloning... ${animation[$((i % ${#animation[@]}))]}${NC}"
-        sleep 0.2
-        ((i++))
-    done
-    wait $pid
-    if [ $? -eq 0 ] && [ -f "$CLONE_DIR/$SCRIPT_NAME" ]; then
-        echo -e "\r${GREEN}Repository cloned successfully!          ${NC}"
-        log_message "Cloned repository from $REPO_URL"
+    if [ "$SHOW_PROCESSING" = "true" ]; then
+        git clone "$REPO_URL" "$CLONE_DIR"
+        if [ $? -eq 0 ] && [ -f "$CLONE_DIR/$SCRIPT_NAME" ]; then
+            echo -e "${GREEN}Repository cloned successfully!${NC}"
+            log_message "Cloned repository from $REPO_URL"
+        else
+            echo -e "${RED}Failed to clone repository!${NC}"
+            echo -e "${YELLOW}1. Check your internet connection."
+            echo -e "${YELLOW}2. Verify the repository URL: $REPO_URL"
+            echo -e "${YELLOW}3. Run the installer again.${NC}"
+            echo -e "${YELLOW}Debug log: $LOG_FILE${NC}"
+            log_message "Failed to clone repository"
+            exit 1
+        fi
     else
-        echo -e "\r${RED}Failed to clone repository!${NC}"
-        echo -e "${YELLOW}1. Check your internet connection."
-        echo -e "${YELLOW}2. Verify the repository URL: $REPO_URL"
-        echo -e "${YELLOW}3. Run the installer again.${NC}"
-        echo -e "${YELLOW}Debug log: $LOG_FILE${NC}"
-        log_message "Failed to clone repository"
-        exit 1
+        (git clone "$REPO_URL" "$CLONE_DIR" > /dev/null 2>&1) &
+        local pid=$!
+        local i=0
+        while kill -0 $pid 2>/dev/null; do
+            local color=$(get_random_spinner_color)
+            echo -en "\r${YELLOW}Cloning... ${color}${animation[$((i % ${#animation[@]}))]}${NC}"
+            sleep 0.05
+        done
+        wait $pid
+        if [ $? -eq 0 ] && [ -f "$CLONE_DIR/$SCRIPT_NAME" ]; then
+            echo -e "\r${GREEN}Repository cloned successfully!          ${NC}"
+            log_message "Cloned repository from $REPO_URL"
+        else
+            echo -e "\r${RED}Failed to clone repository!${NC}"
+            echo -e "${YELLOW}1. Check your internet connection."
+            echo -e "${YELLOW}2. Verify the repository URL: $REPO_URL"
+            echo -e "${YELLOW}3. Run the installer again.${NC}"
+            echo -e "${YELLOW}Debug log: $LOG_FILE${NC}"
+            log_message "Failed to clone repository"
+            exit 1
+        fi
     fi
     echo -e "${YELLOW}Installing to $INSTALL_DIR/$SCRIPT_NAME...${NC}"
     if mv "$CLONE_DIR/$SCRIPT_NAME" "$INSTALL_DIR/$SCRIPT_NAME" 2>&1; then
@@ -415,8 +478,8 @@ main() {
     echo -e "${YELLOW}Starting $TOOL_NAME setup v$INSTALLER_VERSION...${NC}"
     log_message "Started setup v$INSTALLER_VERSION"
     sleep 1
+    ask_live_processing
     remove_previous
-    check_internet
     update_packages
     install_dependencies
     setup_storage
