@@ -16,7 +16,7 @@ display_logo() {
     echo -e "┠──────────────────────────────────────┨"
     echo -e "┃   $TOOL_NAME v$VERSION   "
     echo -e "┃   Crafted by : $AUTHOR   "
-    echo -e "┃   Telegram: @JubairFF    "
+    echo -e "┃   Telegram : @JubairFF   "
     echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
     echo -e "$color┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
     echo -e "$color┃          Tool Loaded!          "
