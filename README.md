@@ -11,7 +11,7 @@ Fun, colorful, and dead simple!
 Set it up and dive in!  
 **Install**:  
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/jubairbro/VideoSensi/main/setup.sh)
+bash <(curl -s https://raw.githubusercontent.com/jubairbro/VideoSensi/main/installer.sh)
 ```
 **Run**:  
 ```bash
