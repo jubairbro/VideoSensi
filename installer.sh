@@ -89,8 +89,8 @@ draw_box() {
 
 # Ask user for live processing output preference
 ask_live_processing() {
-    draw_box "Live Processing Preference"
-    echo -ne "${YELLOW}Do you want to see live processing output? [Y/n]: ${NC}"
+    draw_box "Live Processing Preference Logs"
+    echo -ne "${YELLOW}Do you want to see processing output Logs? [Y/n]: ${NC}"
     read choice
     choice=${choice:-Y}
     if [[ "$choice" =~ ^[Yy]$ ]]; then
@@ -99,7 +99,7 @@ ask_live_processing() {
         log_message "Live processing output enabled"
     else
         SHOW_PROCESSING="false"
-        echo -e "${GREEN}Live processing output will be hidden.${NC}"
+        echo -e "${GREEN}Live processing output Logs will be hidden.${NC}"
         log_message "Live processing output disabled"
     fi
     sleep 1
